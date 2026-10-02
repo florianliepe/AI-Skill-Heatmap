@@ -12,6 +12,8 @@ The private n8n project owns the workspace table, team-access credential, gatewa
 
 The context workflow must also be published before the agent can invoke it. Backend execution data saving is disabled for successful and failed runs to avoid storing authorization headers and prompt content in execution logs. Application mutation events are stored separately in the bounded activity list.
 
+For a fresh deployment, provide the authorised n8n API key and gateway key in the private operator credential directory described below. Run the read-only Python importer with the directory containing the source workbooks, then `node scripts/init-backend.mjs`, `node scripts/deploy-backend.mjs`, and `node scripts/deploy-assistant.mjs`. The importer requires `openpyxl`. The first backend deployment generates a random team password in the private credential directory. Existing deployment IDs and data are preserved on reruns. Deployment scripts target this installation's n8n host; adapt that host, allowed origins and the frontend endpoints for another installation.
+
 ## Authentication
 
 The password is enforced at both n8n entry points using an HTTP Basic credential over HTTPS. The public Pages interface contains no password verifier and no seeded workspace. The team password is kept in browser memory, with no cookies or local-storage copies. Reload requires sign-in. A shared password identifies the team, so activity is not attributable to individuals. Anyone with it has equal edit permissions and can export data.

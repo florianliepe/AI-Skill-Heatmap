@@ -102,6 +102,7 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [family, setFamily] = useState("All families");
   const [heatMode, setHeatMode] = useState("Target");
+  const [canvasLayer, setCanvasLayer] = useState("Operating model");
   const [chat, setChat] = useState(false);
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState<
@@ -293,6 +294,19 @@ export default function App() {
       </div>
     );
   const vision = data.visions[0];
+  const visibleNodes = data.nodes.filter(
+    (n) =>
+      canvasLayer === "All layers" ||
+      (canvasLayer === "Value stream"
+        ? n.category === "Value stream"
+        : n.category !== "Value stream"),
+  );
+  const visibleEdges = data.edges.filter(
+    (e) =>
+      visibleNodes.some((n) => n.id === e.source) &&
+      visibleNodes.some((n) => n.id === e.target),
+  );
+  const canvasData = { ...data, nodes: visibleNodes, edges: visibleEdges };
   const measured = data.keyResults.filter((k) => k.current !== null).length;
   const assessed = data.assessments.filter((a) => a.current !== null).length;
   const overall = objectiveProgress(data.keyResults);
@@ -862,8 +876,17 @@ export default function App() {
             <>
               <div className="canvas-toolbar">
                 <div className="segmented">
-                  <span className="selected">Target state</span>
-                  <span>2027 / 2028</span>
+                  {["Operating model", "Value stream", "All layers"].map(
+                    (layer) => (
+                      <button
+                        key={layer}
+                        className={canvasLayer === layer ? "selected" : ""}
+                        onClick={() => setCanvasLayer(layer)}
+                      >
+                        {layer}
+                      </button>
+                    ),
+                  )}
                 </div>
                 <span className="muted">
                   Drag to arrange · Double-click to edit · Connect handles
@@ -877,7 +900,8 @@ export default function App() {
                 </button>
               </div>
               <TargetCanvas
-                data={data}
+                key={canvasLayer}
+                data={canvasData}
                 busy={busy}
                 onEdit={(n) => edit("nodes", n)}
                 onMove={(n) => save("nodes", n)}
@@ -887,11 +911,12 @@ export default function App() {
               <div className="section-heading beneath">
                 <h2>From current state to target state</h2>
                 <span className="muted">
-                  {data.nodes.length} elements · {data.edges.length} connections
+                  {visibleNodes.length} elements · {visibleEdges.length}{" "}
+                  connections
                 </span>
               </div>
               <div className="target-list">
-                {data.nodes.map((n) => (
+                {visibleNodes.map((n) => (
                   <article className="card" key={n.id}>
                     <div className="section-heading">
                       <span className="quiet-badge">{n.category}</span>
@@ -915,7 +940,7 @@ export default function App() {
                   </article>
                 ))}
               </div>
-              {!data.nodes.length && (
+              {!visibleNodes.length && (
                 <Empty>Add an element to start designing.</Empty>
               )}
             </>

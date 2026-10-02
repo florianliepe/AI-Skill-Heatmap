@@ -46,6 +46,19 @@ describe("Outcome measurement", () => {
   });
 });
 describe("Shared mutation rules", () => {
+  it("accepts canvas connections whose target is a node ID", () => {
+    const r = applyMutation(
+      { data, revision: 1 },
+      {
+        action: "create",
+        collection: "edges",
+        record: { id: "edge", source: "a", target: "b", label: "Handover" },
+        revision: 1,
+      },
+    );
+    expect(r.write).toBe(true);
+    expect(r.response.data.edges[0].target).toBe("b");
+  });
   it("accepts valid records and creates an audit entry", () => {
     const r = applyMutation(
       { data, revision: 1 },

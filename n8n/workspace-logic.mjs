@@ -91,7 +91,10 @@ export function applyMutation(snapshot, request) {
           value.some((v) => typeof v !== "string" || v.length > 4000)
         )
           return fail("Provide four proficiency definitions.");
-      } else if (numberFields.includes(key)) {
+      } else if (
+        numberFields.includes(key) &&
+        !(c === "edges" && key === "target")
+      ) {
         if (
           !(key === "current" && value === null) &&
           (typeof value !== "number" || !Number.isFinite(value))
