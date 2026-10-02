@@ -65,12 +65,12 @@ const navigation = [
 const fmt = (v: number | null) =>
   v === null ? "Not measured" : `${Math.round(v)}%`;
 const colors = [
-  "#4e514c",
-  "#b39a72",
-  "#d0b684",
-  "#8f9b9f",
-  "#b88873",
-  "#9a9488",
+  "#202020",
+  "#FF6428",
+  "#93867D",
+  "#B55A44",
+  "#725F50",
+  "#B1A399",
 ];
 function Empty({ children }: { children: React.ReactNode }) {
   return (
@@ -948,6 +948,15 @@ export default function App() {
           {page === "Skill catalog" && (
             <>
               {filters}
+              <div className="catalog-key" aria-label="Catalog scoring guide">
+                <strong>Read the scores</strong>
+                <span>
+                  Relevance & impact: <b>1 low → 5 high</b>
+                </span>
+                <span className="need-key">
+                  Orange = upskilling need: <b>1 low → 5 high</b>
+                </span>
+              </div>
               <section className="card catalog-table">
                 <div className="table-wrap">
                   <table>
@@ -981,13 +990,17 @@ export default function App() {
                             </span>
                           </td>
                           <td>
-                            <span className="score-dot">{s.relevance}</span>
+                            <span className={`score-dot score-${s.relevance}`}>
+                              {s.relevance}
+                            </span>
                           </td>
                           <td>
-                            <span className="score-dot">{s.impact}</span>
+                            <span className={`score-dot score-${s.impact}`}>
+                              {s.impact}
+                            </span>
                           </td>
                           <td>
-                            <span className="score-dot warm">
+                            <span className={`score-dot need-${s.upskilling}`}>
                               {s.upskilling}
                             </span>
                           </td>
@@ -1021,6 +1034,7 @@ export default function App() {
                       <button
                         key={m}
                         className={heatMode === m ? "selected" : ""}
+                        aria-pressed={heatMode === m}
                         onClick={() => setHeatMode(m)}
                       >
                         {m}
@@ -1045,7 +1059,7 @@ export default function App() {
                       <ScatterChart
                         margin={{ top: 30, right: 35, bottom: 30, left: 20 }}
                       >
-                        <CartesianGrid strokeDasharray="4 5" stroke="#dfe4dc" />
+                        <CartesianGrid strokeDasharray="4 5" stroke="#E7DED7" />
                         <XAxis
                           type="number"
                           dataKey="relevance"
@@ -1092,7 +1106,7 @@ export default function App() {
                             name={f}
                             data={skills.filter((s) => s.family === f)}
                             fill={colors[i % 6]}
-                            fillOpacity={0.6}
+                            fillOpacity={0.85}
                             onClick={(s) =>
                               edit("skills", s as unknown as RecordValue)
                             }
@@ -1100,6 +1114,17 @@ export default function App() {
                         ))}
                       </ScatterChart>
                     </ResponsiveContainer>
+                  </div>
+                  <div
+                    className="portfolio-legend"
+                    aria-label="Capability families"
+                  >
+                    {families.map((f, i) => (
+                      <span key={f}>
+                        <i style={{ background: colors[i % colors.length] }} />
+                        {f}
+                      </span>
+                    ))}
                   </div>
                   <p className="method-note">
                     Skills with the same scores overlap. Use the catalog for
@@ -1109,7 +1134,11 @@ export default function App() {
               ) : (
                 <section className="card heatmap-card">
                   <div className="heat-legend">
-                    <strong>{heatMode} proficiency</strong>
+                    <strong>
+                      {heatMode === "Gap"
+                        ? "Skill gap"
+                        : `${heatMode} proficiency`}
+                    </strong>
                     {(heatMode === "Gap" ? [0, 1, 2, 3] : [1, 2, 3, 4]).map(
                       (n) => (
                         <span key={n}>
@@ -1118,7 +1147,9 @@ export default function App() {
                           />
                           {n}
                           {heatMode === "Gap"
-                            ? " level gap"
+                            ? n === 0
+                              ? " — target met"
+                              : ` level${n === 1 ? "" : "s"} below target`
                             : [
                                 "",
                                 " Guided",
@@ -1138,6 +1169,11 @@ export default function App() {
                       Not mapped
                     </span>
                   </div>
+                  <p className="heat-hint">
+                    {heatMode === "Gap"
+                      ? "Orange intensity shows the distance to target. Unassessed skills have no calculated gap."
+                      : "Darker shades indicate higher proficiency. Select a cell to view or edit the role assessment."}
+                  </p>
                   <div className="table-wrap heat-scroll">
                     <table className="heat-table">
                       <thead>

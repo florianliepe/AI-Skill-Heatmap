@@ -25,3 +25,9 @@ Temporary QA entities were removed. Their mutation events remain visible in the 
 The screenshot mechanism required a retry during responsive testing. Mobile geometry, visible controls and the final mobile canvas were checked; desktop pages were visually inspected. A physical-device test is still advisable before a wider rollout.
 
 This is an MVP acceptance pass, not a penetration test or a full accessibility audit. The operational limitations and credential renewal dates are recorded in `OPERATIONS.md`.
+# Palette refinement — 2 October 2026
+
+- Sampled the user-supplied Eraneos swatch image: charcoal `#202020`, orange `#FF6428`, warm neutral and orange shade families.
+- Proficiency uses four neutral shades; gaps and upskilling use orange shades. Numeric labels remain present. Unassessed cells retain a gray hatch and question mark; unmapped cells use a dashed border and plus sign.
+- Catalog scoring guide, stronger table headers, status badges, selected controls and portfolio family legend improve distinctions without changing stored data.
+- Production build and all 11 existing tests pass. Browser preview verified catalog, target/gap legends and portfolio legend. Sampled heatmap text/background contrast pairs range from 5.07:1 to 16.29:1; this is not a full accessibility audit.
