@@ -1,0 +1,91 @@
+{
+  "name": "AI Vision Studio | read strategy context",
+  "nodes": [
+    {
+      "id": "556b113f-4465-4d44-82da-5d22df2b752b",
+      "name": "Called by strategy agent",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "cfbdf4c7-f66b-40ac-abf5-f3d5ea167b5a",
+      "name": "Read workspace",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "WORKSPACE_TABLE_ID",
+          "mode": "id"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "workspace",
+              "condition": "eq",
+              "keyValue": "main"
+            }
+          ]
+        },
+        "returnAll": true
+      }
+    },
+    {
+      "id": "31124a5e-c1da-43cc-afbc-d723892c06c4",
+      "name": "Return relevant context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const row=$input.first().json;const d=JSON.parse(row.payload);return [{json:{revision:row.revision,visions:d.visions,objectives:d.objectives,keyResults:d.keyResults,roles:d.roles,skills:d.skills.map(({id,name,family,definition,relevance,impact})=>({id,name,family,definition,relevance,impact})),assessments:d.assessments,nodes:d.nodes,note:\"Missing current values are unassessed, not zero. Targets are working proposals.\"}}];"
+      }
+    }
+  ],
+  "connections": {
+    "Called by strategy agent": {
+      "main": [
+        [
+          {
+            "node": "Read workspace",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read workspace": {
+      "main": [
+        [
+          {
+            "node": "Return relevant context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "none",
+    "saveDataSuccessExecution": "none",
+    "saveManualExecutions": false,
+    "executionTimeout": 60
+  }
+}
