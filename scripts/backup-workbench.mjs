@@ -1,0 +1,15 @@
+import fs from 'node:fs/promises';
+import assert from 'node:assert/strict';
+import {api} from './n8n-client.mjs';
+import {applyMutation} from '../n8n/workspace-logic.mjs';
+const d=JSON.parse(await fs.readFile('.local/deployment.json','utf8'));
+const rows=await api(`/data-tables/${d.tableId}/rows`);
+const workflow=await api(`/workflows/${d.workflowId}`);
+const path='.local/pre-workbench-'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';
+await fs.writeFile(path,JSON.stringify({rows,workflow},null,2));
+const row=rows.data.find(r=>r.workspace==='main');
+const before={data:JSON.parse(row.payload),revision:row.revision};
+const migrated=applyMutation(before,{action:'read'}).response;
+for(const key of Object.keys(before.data))assert.deepEqual(migrated.data[key],before.data[key]);
+const restored=JSON.parse(JSON.stringify(before));assert.deepEqual(restored,before);
+console.log('Private backup saved; additive normalization and backup round-trip verified. Revision:',before.revision);

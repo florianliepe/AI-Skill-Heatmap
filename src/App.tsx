@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
+import Workbench from "./Workbench";
 import {
   ArrowDownToLine,
   ArrowRight,
@@ -11,6 +12,7 @@ import {
   Grid2X2,
   Layers,
   LayoutDashboard,
+  Lightbulb,
   LockKeyhole,
   LogOut,
   MessageSquare,
@@ -47,6 +49,7 @@ import type {
 import Editor, { newRecord } from "./Editor";
 import TargetCanvas from "./TargetCanvas";
 type Page =
+  | "Workbench"
   | "Overview"
   | "Vision & OKRs"
   | "Target picture"
@@ -56,12 +59,25 @@ type Page =
   | "Activity";
 const navigation = [
   { name: "Overview", icon: LayoutDashboard },
+  { name: "Workbench", icon: Lightbulb },
   { name: "Vision & OKRs", icon: Target },
   { name: "Target picture", icon: Network },
   { name: "Skill catalog", icon: Layers },
   { name: "Skill heatmap", icon: Grid2X2 },
   { name: "Role profiles", icon: Users },
 ] as const;
+function pageFromHash(): Page {
+  const raw = location.hash.split("/")[1] || "";
+  if (raw === "workbench") return "Workbench";
+  try {
+    const decoded = decodeURIComponent(raw);
+    return [...navigation.map((n) => n.name), "Activity"].includes(decoded)
+      ? (decoded as Page)
+      : "Overview";
+  } catch {
+    return "Overview";
+  }
+}
 const fmt = (v: number | null) =>
   v === null ? "Not measured" : `${Math.round(v)}%`;
 const colors = [
@@ -89,7 +105,43 @@ function Progress({ value }: { value: number | null }) {
 }
 export default function App() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
-  const [page, setPage] = useState<Page>("Overview");
+  const [page, setPageState] = useState<Page>(pageFromHash);
+  const pageRef = useRef(page);
+  pageRef.current = page;
+  const acceptedHash = useRef(location.hash);
+  function setPage(next: Page) {
+    if (
+      !window.dispatchEvent(new Event("studio-navigate", { cancelable: true }))
+    )
+      return;
+    const hash =
+      next === "Workbench" ? "#/workbench" : "#/" + encodeURIComponent(next);
+    location.hash = hash;
+    acceptedHash.current = hash;
+    setPageState(next);
+  }
+  useEffect(() => {
+    const changed = () => {
+      const next = pageFromHash();
+      if (
+        next !== pageRef.current &&
+        !window.dispatchEvent(
+          new Event("studio-navigate", { cancelable: true }),
+        )
+      ) {
+        history.replaceState(null, "", acceptedHash.current);
+        return;
+      }
+      acceptedHash.current = location.hash;
+      setPageState(next);
+    };
+    window.addEventListener("hashchange", changed);
+    window.addEventListener("popstate", changed);
+    return () => {
+      window.removeEventListener("hashchange", changed);
+      window.removeEventListener("popstate", changed);
+    };
+  }, []);
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -114,7 +166,12 @@ export default function App() {
     () => (data ? [...new Set(data.skills.map((s) => s.family))] : []),
     [data],
   );
-  const logout = () => {
+  const logout = (force = false) => {
+    if (
+      !force &&
+      !window.dispatchEvent(new Event("studio-navigate", { cancelable: true }))
+    )
+      return;
     api.clearSession();
     setSnapshot(null);
     setPassword("");
@@ -128,7 +185,7 @@ export default function App() {
     let timer: ReturnType<typeof setTimeout>;
     const reset = () => {
       clearTimeout(timer);
-      timer = setTimeout(logout, 30 * 60 * 1000);
+      timer = setTimeout(() => logout(true), 30 * 60 * 1000);
     };
     reset();
     window.addEventListener("pointerdown", reset);
@@ -319,6 +376,12 @@ export default function App() {
     Page,
     { kicker: string; title: string; description: string }
   > = {
+    Workbench: {
+      kicker: "AI DESIGN WORKBENCH",
+      title: "Make opportunity actionable.",
+      description:
+        "Discover, design and test AI use cases. Keep the evidence connected to your strategy.",
+    },
     Overview: {
       kicker: "YOUR TRANSFORMATION, CONNECTED",
       title: "A clear view of what’s next.",
@@ -455,7 +518,7 @@ export default function App() {
             <ChartNoAxesCombined size={17} />
             Workspace activity
           </button>
-          <button onClick={logout}>
+          <button onClick={() => logout()}>
             <LogOut size={17} />
             Sign out
           </button>
@@ -494,7 +557,7 @@ export default function App() {
             <button
               className="icon-button mobile-signout"
               aria-label="Sign out"
-              onClick={logout}
+              onClick={() => logout()}
             >
               <LogOut size={16} />
             </button>
@@ -753,6 +816,9 @@ export default function App() {
                 </button>
               </div>
             </>
+          )}
+          {page === "Workbench" && (
+            <Workbench snapshot={snapshot} onSnapshot={setSnapshot} />
           )}
           {page === "Vision & OKRs" && (
             <>

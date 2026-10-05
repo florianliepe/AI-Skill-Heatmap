@@ -82,6 +82,8 @@ export type Audit = {
   label: string;
 };
 export type Workspace = {
+  schemaVersion?: number;
+  workItems?: import("./workbench-model").WorkItem[];
   visions: Vision[];
   objectives: Objective[];
   keyResults: KeyResult[];
@@ -92,6 +94,9 @@ export type Workspace = {
   edges: CanvasEdge[];
   audit: Audit[];
 };
-export type Collection = Exclude<keyof Workspace, "audit">;
+export type Collection = Exclude<
+  keyof Workspace,
+  "audit" | "schemaVersion" | "workItems"
+>;
 export type RecordValue = Workspace[Collection][number];
 export type Snapshot = { data: Workspace; revision: number };

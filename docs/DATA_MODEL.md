@@ -1,5 +1,17 @@
 # Data model and API
 
+## Workbench extension (schema version 2)
+
+`src/workbench-model.ts` defines `workItems`. Each record is an idea or use case with problem evidence, process/session, versioned capability categories, optional objective and target-node references, source-idea links, impact, value assumptions, experiment, observations, decisions, enablement actions and next action. New records start with unknown numerical inputs, not zero. Financial assumptions have a separate source/uncertainty field from problem evidence.
+
+Legacy payloads normalize additively on read; existing IDs and collections stay unchanged. The normalized schema is persisted on the next successful mutation. Referenced objectives, nodes, roles, skills and source ideas cannot be deleted while workbench links remain. Archive the case or remove its links first.
+
+Workbench writes use an optional request ID. The last 30 successful mutation fingerprints allow identical retries without another write. Reusing an ID for a different payload is rejected. Outside that window, record IDs and workspace revisions still prevent a duplicate create or silent overwrite. The client merges independent top-level fields after a conflict; nested structures require an explicit choice when both sides changed them.
+
+Saved decisions and observations are append-only. Once observations exist, experiment measure, unit, baseline and target are fixed to preserve comparability. Plan a new linked case for a changed measurement definition. Pilot stages require an owner, hypothesis, measure/unit, sample plan, target, stop rule and review date. “In use” also requires an observation and Scale decision; declared owners remain unverified under shared access.
+
+Value estimates are annual EUR base scenarios: released hours = volume × adoption × (baseline minutes − assisted minutes − review minutes) / 60. Capacity value = hours × loaded hourly rate; cashable benefit = capacity value × realization percentage. Net cash subtracts recurring cost; first-year net also subtracts setup cost. Payback is only displayed for positive annual net cash. Unknown inputs propagate; negative results remain visible. No portfolio benefit sum is calculated because cases can overlap. Outcomes remain separately recorded observations, not automatically claimed savings.
+
 The TypeScript entity definitions in `src/types.ts` are the frontend contract. Server-side mutation validation is implemented in `n8n/workspace-logic.mjs` and embedded into the n8n workflow by the deployment script.
 
 | Collection | Fields and relationships |

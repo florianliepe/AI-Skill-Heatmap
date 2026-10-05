@@ -48,6 +48,19 @@ export async function login(password: string) {
   }
 }
 export const refresh = () => request({ action: "read" });
+export const saveWorkItem = (
+  record: import("./workbench-model").WorkItem,
+  revision: number,
+  create: boolean,
+  requestId: string,
+) =>
+  request({
+    action: create ? "create" : "update",
+    collection: "workItems",
+    record,
+    revision,
+    requestId,
+  });
 export const save = (
   collection: Collection,
   record: RecordValue,

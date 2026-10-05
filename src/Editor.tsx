@@ -110,6 +110,32 @@ export default function Editor({
   const [value, setValue] = useState<Record<string, unknown>>(
     structuredClone(record) as unknown as Record<string, unknown>,
   );
+  const dirty = JSON.stringify(value) !== JSON.stringify(record);
+  const closeEditor = () => {
+    if (
+      !dirty ||
+      window.confirm("Discard unsaved changes? Cancel keeps your draft.")
+    )
+      onClose();
+  };
+  useEffect(() => {
+    const guard = (e: Event) => {
+      if (dirty && !window.confirm("Discard unsaved editor changes?"))
+        e.preventDefault();
+    };
+    const unload = (e: BeforeUnloadEvent) => {
+      if (dirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("studio-navigate", guard);
+    window.addEventListener("beforeunload", unload);
+    return () => {
+      window.removeEventListener("studio-navigate", guard);
+      window.removeEventListener("beforeunload", unload);
+    };
+  }, [dirty]);
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const dialogRef = useRef<HTMLElement>(null);
@@ -319,14 +345,14 @@ export default function Editor({
     <div
       className="modal-backdrop"
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget && !busy) onClose();
+        if (e.target === e.currentTarget && !busy) closeEditor();
       }}
     >
       <section
         className="editor"
         ref={dialogRef}
         onKeyDown={(event) => {
-          if (event.key === "Escape" && !busy) onClose();
+          if (event.key === "Escape" && !busy) closeEditor();
           if (event.key !== "Tab") return;
           const focusable = [
             ...(dialogRef.current?.querySelectorAll<HTMLElement>(
@@ -357,7 +383,7 @@ export default function Editor({
           <button
             aria-label="Close editor"
             className="icon-button"
-            onClick={onClose}
+            onClick={closeEditor}
             disabled={busy}
           >
             <X size={20} />
@@ -480,7 +506,7 @@ export default function Editor({
               </button>
             )}
             <span className="spacer" />
-            <button type="button" onClick={onClose} disabled={busy}>
+            <button type="button" onClick={closeEditor} disabled={busy}>
               Cancel
             </button>
             <button className="primary" type="submit" disabled={busy}>

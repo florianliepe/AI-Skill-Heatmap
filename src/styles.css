@@ -44,7 +44,7 @@ button {
     background 0.15s,
     transform 0.15s;
 }
-button:where(:not(.heat-cell)):hover {
+button:where(:not(.heat-cell, .wb-heat)):hover {
   background: #efeeeb;
 }
 button:disabled {

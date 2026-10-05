@@ -1,5 +1,18 @@
 # MVP verification
 
+## Workbench release — 5 October 2026
+
+- TypeScript and production build passed; 21 unit tests passed. The build retains a large-bundle advisory (approximately 265 KB gzipped JavaScript); code splitting remains a follow-up.
+- Live workbench integration verified create, same-request retry without duplication, linked cases, reference protection, stale-write rejection, pilot fields, zero-valued observations, enablement and immutable evidence. All pre-existing entity collections were compared before/after; temporary API cases were removed.
+- Existing live authentication and concurrency suite passed: anonymous/wrong password rejected; exactly one competing write committed. Its temporary record was removed.
+- Browser verified two-field idea capture, linked use-case creation, retained draft after a stale save, reconciliation and subsequent successful save. Its two temporary records were removed separately.
+- Desktop landscape visually inspected with Potential, unknown versus empty cells, evidence counts and contributor drill-down. Example mode is explicitly separated from shared data.
+- A native discard-confirmation dialog interrupted browser automation; cancellation and mobile workbench behavior are not yet signed off by this run. No automated end-to-end claim is made for those interactions.
+- Backend snapshot/workflow backed up privately before deployment; additive schema normalization and backup serialization round-trip checked without overwriting live data.
+- Source deployment and final publication are tracked by the GitHub Actions run associated with this change. Local checks do not by themselves confirm Pages publication.
+
+Implementation scope and boundaries: `WORKBENCH_GOAL.md`; operating guidance: `OPERATIONS.md`.
+
 Verified on 2 October 2026 against the configured n8n backend and the published GitHub Pages site.
 
 | Check | Result |

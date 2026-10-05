@@ -1,5 +1,17 @@
 # Operating the MVP
 
+## Facilitating the workbench
+
+Use one designated scribe per workshop. Capture title and problem, then add process/session and capability mapping. Develop a saved idea into a linked use case. Follow Discover → Design → Estimate value → Prioritize pilot → Track outcomes. Record comparison criteria, a baseline collection plan and a next review before advancing the pilot.
+
+Landscape offers Coverage (assessed/captured), Potential (median assessed impact) and Count. Hatched cells are unassessed; empty cells mean nothing captured. A record can belong to multiple capabilities, so cell counts are not additive. Select a cell to see contributing records. Filters apply to the landscape; the workshop pulse shows the full workspace. Impact is a declared 1–5 judgment with rationale, not an automated ranking.
+
+Example mode uses fictional browser-only records and cannot save them to the team workspace. Decision briefs download locally as printable HTML. They reflect the current draft, so save before distributing a final brief. The example export is explicitly labelled. Financial assumptions are EUR annual base estimates without a ramp or scenario range.
+
+Changes remain in memory until saved. Navigation and tab-close guards warn about unsaved work; closing/reloading or the 30-minute inactivity sign-out can still lose an unsaved draft. Failed saves retain the open draft; use Load latest & reconcile, review the result, then save. Add observation/decision/enablement entries to the draft before saving. This release does not provide offline storage, individual authorization or autonomous agent writes. The existing strategy assistant reads legacy strategy/skills context; contextual workbench agent proposals remain a later release.
+
+Before backend changes, run `node scripts/backup-workbench.mjs`. It stores the current workflow and table snapshot privately in `.local/` and verifies additive normalization on a copy. This is a backup round-trip check, not a production rollback drill. Restore only after checking for newer legitimate edits. After deploying with `node scripts/deploy-backend.mjs`, run `node scripts/test-workbench-api.mjs`; it creates its own temporary cases and removes them, preserving pre-existing entities. QA mutation history remains visible.
+
 ## Deployment and ownership
 
 The frontend publishes through `.github/workflows/pages.yml` on every verified `main` update. Repository source, workflow templates and documentation are public. Only nonconfidential code and branding may be committed. `.local/`, runtime credentials, source files and populated workspaces remain excluded.

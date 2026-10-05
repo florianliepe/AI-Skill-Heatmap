@@ -6,6 +6,8 @@ Frontend: https://florianliepe.github.io/AI-Skill-Heatmap/
 
 ## Included
 
+- AI Design Workbench: opportunity capture, linked use cases, process × capability heatmap, evidence coverage, comparison, editable value assumptions, experiments, observations and team enablement.
+- Five-step case editor with explicit saves, navigation guards, conflict reconciliation and printable decision briefs. Open **Workbench → Explore an example** for an isolated, fictional demonstration.
 - Editable vision, strategic objectives, key results and an outcome dashboard.
 - Drag-and-connect target-picture canvas with editable current/target states, owners and work modes.
 - Searchable skill catalog, four proficiency anchors, priority scores and governance status.
