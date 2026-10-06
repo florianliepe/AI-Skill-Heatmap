@@ -6,6 +6,8 @@ Frontend: https://florianliepe.github.io/AI-Skill-Heatmap/
 
 ## Included
 
+- Guided sprint room with scoped sessions, capability prompts and four workshop modules; a visual human–AI workflow canvas and deliverable-coverage views.
+- Contextual n8n challenger with validated, individually selectable draft proposals and a separate explicit save. The newly supplied Miro board remains pending authenticated access; its exact taxonomy is not represented as verified content.
 - AI Design Workbench: opportunity capture, linked use cases, process × capability heatmap, evidence coverage, comparison, editable value assumptions, experiments, observations and team enablement.
 - Five-step case editor with explicit saves, navigation guards, conflict reconciliation and printable decision briefs. Open **Workbench → Explore an example** for an isolated, fictional demonstration.
 - Editable vision, strategic objectives, key results and an outcome dashboard.

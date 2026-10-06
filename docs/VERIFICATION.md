@@ -1,5 +1,18 @@
 # MVP verification
 
+## Guided sprint release — 6 October 2026
+
+- TypeScript and 30 unit tests passed, including legacy schema normalization, session validation and links, work-design coverage denominators, and rejection of unsafe/oversized/duplicate proposal fields.
+- Live sprint API test passed: session persistence, linked-session deletion protection, anonymous challenger rejection, scoped workflow-tool invocation, structured response validation and no workspace mutation during inference. Existing collections were compared before/after; temporary records removed.
+- Existing live workbench API suite passed against the updated backend (retry, stale revisions, references, zero observations, evidence immutability and cleanup).
+- Browser verified session creation and stale-save recovery, capability-based idea capture with session linkage, conversion to a use case, workflow field persistence, and contextual challenger output.
+- Browser verified partial proposal acceptance: only the chosen next-action suggestion became an unsaved draft. An independent API read confirmed it was not saved. The draft was discarded and only the three browser-created QA entities were removed.
+- Keep editing and keyboard Escape preserved unsaved content; Discard changes returned to the requested view. These checks close the previous in-app confirmation gap.
+- At the 390 × 844 responsive viewport, the sprint module controls, heatmap, and filters were visually checked. Filter sizing was repaired. Document scroll width matched its viewport; the heatmap retains its own horizontal scroll. Desktop was reviewed separately. This is browser-emulation coverage, not a physical-device certification.
+- The decision-brief download event timed out in browser automation. The updated export includes work-design fields in source, but download completion was not confirmed by this run.
+- Known credential scan passed for candidate public files and production assets. No new Miro card wording or board images were imported or published.
+- Miro-specific enrichment remains blocked: the board requires a password in the available anonymous session, and the Chrome connector cannot load its access policy. This is recorded as R208 in `WORKBENCH_RELEASE_2.md`.
+
 ## Workbench release — 5 October 2026
 
 - TypeScript and production build passed; 21 unit tests passed. The build retains a large-bundle advisory (approximately 265 KB gzipped JavaScript); code splitting remains a follow-up.

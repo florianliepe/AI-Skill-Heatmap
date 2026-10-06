@@ -1,5 +1,15 @@
 # Data model and API
 
+## Guided sprint extension (schema version 3)
+
+`sprintSessions` stores title, problem, scope, facilitator, participants, module, method version, date and intended outcome. The four module values are Awareness, Opportunity mapping, Process automation and Products & services. Title and problem are required; dates, when provided, must be real calendar dates. Session references block deletion while a case is linked.
+
+Work items may now contain `sessionId` and `workDesign`. The latter stores current work, input, AI task, human judgment, handover, output, tools and autonomy (AI supported / AI augmented / Agentic). Existing records remain valid and normalize these fields on their next save. The workflow canvas describes a design and does not execute it.
+
+Deliverable coverage uses only filtered, non-archived use cases. Target-picture coverage requires objective and node links. Working-approach coverage requires six nonempty design fields (current work, input, AI task, human judgment, handover, output). Team-enablement coverage requires at least one validated enablement action. Zero cases shows no coverage, not 100%. These are completeness indicators, not approvals, maturity scores or benefits.
+
+The contextual challenger endpoint accepts `caseId`, workspace `revision` and a question. Its native n8n Chat Trigger authenticates the shared team credential. The AI Agent calls a fixed, read-only workflow tool for that selected case and its linked objective/node. A deterministic validator checks the tool was used and allows only text proposals for `design`, `alternative` and `nextAction`, plus questions. No observation, financial input, ID, score or decision field can be applied by the proposal interface. The client validates again, checks the latest revision and guards against in-flight draft changes before applying explicitly selected text to the draft. The user must save separately. Proposals are not persisted; execution payload logging is disabled.
+
 ## Workbench extension (schema version 2)
 
 `src/workbench-model.ts` defines `workItems`. Each record is an idea or use case with problem evidence, process/session, versioned capability categories, optional objective and target-node references, source-idea links, impact, value assumptions, experiment, observations, decisions, enablement actions and next action. New records start with unknown numerical inputs, not zero. Financial assumptions have a separate source/uncertainty field from problem evidence.

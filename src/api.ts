@@ -48,6 +48,67 @@ export async function login(password: string) {
   }
 }
 export const refresh = () => request({ action: "read" });
+export async function challenge(
+  caseId: string,
+  revision: number,
+  chatInput: string,
+): Promise<import("./proposal-model").ChallengerResult> {
+  const startedInSession = sessionVersion;
+  const response = await fetch(
+    "https://eraneos-agentic-platform.azurewebsites.net/webhook/ai-vision-challenger-v2/chat",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: authorization,
+      },
+      body: JSON.stringify({
+        action: "sendMessage",
+        sessionId: crypto.randomUUID(),
+        caseId,
+        revision,
+        chatInput,
+      }),
+      signal: AbortSignal.timeout(70000),
+      cache: "no-store",
+    },
+  );
+  if (startedInSession !== sessionVersion)
+    throw new Error("Your session ended. Sign in again.");
+  if (response.status === 401)
+    throw new Error(
+      "Your session expired. Sign in again before using the challenger.",
+    );
+  if (!response.ok)
+    throw new Error(
+      "The challenger is unavailable or the workspace changed. Refresh, save your case, then retry. Manual editing remains available.",
+    );
+  const raw = await response.json();
+  const result = typeof raw.output === "string" ? JSON.parse(raw.output) : raw;
+  if (result.caseId !== caseId || result.revision !== revision)
+    throw new Error(
+      "The proposal context is outdated or invalid. Nothing was applied.",
+    );
+  const { parseProposal } = await import("./proposal-model");
+  const parsed = parseProposal({
+    proposals: result.proposals,
+    questions: result.questions,
+  });
+  return { ...parsed, caseId, revision };
+}
+export const saveSession = (
+  record: import("./sprint-model").SprintSession,
+  revision: number,
+  create: boolean,
+  requestId: string,
+) =>
+  request({
+    action: create ? "create" : "update",
+    collection: "sprintSessions",
+    record,
+    revision,
+    requestId,
+  });
 export const saveWorkItem = (
   record: import("./workbench-model").WorkItem,
   revision: number,

@@ -84,6 +84,7 @@ export type Audit = {
 export type Workspace = {
   schemaVersion?: number;
   workItems?: import("./workbench-model").WorkItem[];
+  sprintSessions?: import("./sprint-model").SprintSession[];
   visions: Vision[];
   objectives: Objective[];
   keyResults: KeyResult[];
@@ -96,7 +97,7 @@ export type Workspace = {
 };
 export type Collection = Exclude<
   keyof Workspace,
-  "audit" | "schemaVersion" | "workItems"
+  "audit" | "schemaVersion" | "workItems" | "sprintSessions"
 >;
 export type RecordValue = Workspace[Collection][number];
 export type Snapshot = { data: Workspace; revision: number };

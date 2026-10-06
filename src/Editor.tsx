@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { X, Trash2, Save } from "lucide-react";
+import { confirmDiscard, protectNavigation } from "./navigation";
 import type { Collection, RecordValue, Workspace } from "./types";
 type Field = {
   key: string;
@@ -111,17 +112,12 @@ export default function Editor({
     structuredClone(record) as unknown as Record<string, unknown>,
   );
   const dirty = JSON.stringify(value) !== JSON.stringify(record);
-  const closeEditor = () => {
-    if (
-      !dirty ||
-      window.confirm("Discard unsaved changes? Cancel keeps your draft.")
-    )
-      onClose();
+  const closeEditor = async () => {
+    if (!dirty || (await confirmDiscard())) onClose();
   };
   useEffect(() => {
     const guard = (e: Event) => {
-      if (dirty && !window.confirm("Discard unsaved editor changes?"))
-        e.preventDefault();
+      protectNavigation(e, dirty);
     };
     const unload = (e: BeforeUnloadEvent) => {
       if (dirty) {

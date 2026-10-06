@@ -4,8 +4,9 @@ export function applyMutation(snapshot, request) {
   const revision = snapshot.revision;
   const data = {
     ...snapshot.data,
-    schemaVersion: 2,
+    schemaVersion: 3,
     workItems: snapshot.data.workItems || [],
+    sprintSessions: snapshot.data.sprintSessions || [],
   };
   const fingerprint = JSON.stringify({
     action: request.action,
@@ -36,6 +37,17 @@ export function applyMutation(snapshot, request) {
       "Someone else updated this workspace. Refresh to load their changes, then try again.",
     );
   const specs = {
+    sprintSessions: [
+      "title",
+      "problem",
+      "scope",
+      "facilitator",
+      "participants",
+      "module",
+      "methodVersion",
+      "date",
+      "outcome",
+    ],
     workItems: [],
     visions: ["title", "statement", "purpose", "horizon", "owner"],
     objectives: ["title", "description", "owner", "period", "pillar"],
@@ -100,6 +112,36 @@ export function applyMutation(snapshot, request) {
     record = { id };
     if (c === "workItems") {
       const raw = request.record;
+      record.sessionId = raw.sessionId || "";
+      if (
+        typeof record.sessionId !== "string" ||
+        (record.sessionId &&
+          !data.sprintSessions.some((s) => s.id === record.sessionId))
+      )
+        return fail("Select an existing sprint session.");
+      const design = raw.workDesign || {};
+      record.workDesign = {};
+      for (const key of [
+        "currentWork",
+        "input",
+        "aiTask",
+        "humanJudgment",
+        "handover",
+        "output",
+        "tools",
+      ]) {
+        const value = design[key] ?? "";
+        if (typeof value !== "string" || value.length > 12000)
+          return fail("Invalid workflow design field: " + key);
+        record.workDesign[key] = value;
+      }
+      record.workDesign.autonomy = design.autonomy || "AI supported";
+      if (
+        !["AI supported", "AI augmented", "Agentic"].includes(
+          record.workDesign.autonomy,
+        )
+      )
+        return fail("Choose a valid AI working approach.");
       const textKeys = [
         "kind",
         "title",
@@ -420,6 +462,25 @@ export function applyMutation(snapshot, request) {
       (record.label !== undefined && c === "nodes" && !record.label.trim())
     )
       return fail("Enter a name or title.");
+    if (c === "sprintSessions") {
+      if (
+        !record.problem.trim() ||
+        ![
+          "Awareness",
+          "Opportunity mapping",
+          "Process automation",
+          "Products & services",
+        ].includes(record.module)
+      )
+        return fail("A sprint needs a problem and valid module.");
+      if (
+        record.date &&
+        (!/^\d{4}-\d{2}-\d{2}$/.test(record.date) ||
+          Number.isNaN(Date.parse(record.date)) ||
+          new Date(record.date).toISOString().slice(0, 10) !== record.date)
+      )
+        return fail("Enter a valid session date.");
+    }
     if (c === "keyResults") {
       if (!data.objectives.some((o) => o.id === record.objectiveId))
         return fail("Select an existing objective.");
@@ -483,11 +544,19 @@ export function applyMutation(snapshot, request) {
     else next[c][at] = record;
   } else {
     if (
-      ["objectives", "nodes", "roles", "skills", "workItems"].includes(c) &&
+      [
+        "objectives",
+        "nodes",
+        "roles",
+        "skills",
+        "workItems",
+        "sprintSessions",
+      ].includes(c) &&
       data.workItems.some(
         (w) =>
           (c === "objectives" && w.objectiveId === id) ||
           (c === "nodes" && w.nodeId === id) ||
+          (c === "sprintSessions" && w.sessionId === id) ||
           (c === "roles" && w.enablement.some((a) => a.roleId === id)) ||
           (c === "skills" && w.enablement.some((a) => a.skillId === id)) ||
           (c === "workItems" && w.sourceIds.includes(id)),

@@ -30,6 +30,11 @@ import {
 } from "recharts";
 import * as api from "./api";
 import {
+  confirmDiscard,
+  protectNavigation,
+  requestNavigation,
+} from "./navigation";
+import {
   categories,
   stages,
   evidenceStates,
@@ -43,6 +48,11 @@ import {
   type Economics,
 } from "./workbench-model";
 import "./workbench.css";
+import SprintRoom from "./SprintRoom";
+import WorkDesignCanvas from "./WorkDesignCanvas";
+import DeliveryReadiness from "./DeliveryReadiness";
+import ChallengerPanel from "./ChallengerPanel";
+import "./sprint.css";
 const tabs = [
   "Discover",
   "Design",
@@ -64,9 +74,8 @@ const number = (n: number | null) =>
     : new Intl.NumberFormat("en-GB", { maximumFractionDigits: 1 }).format(n);
 const today = () => new Date().toISOString().slice(0, 10);
 const route = () => location.hash.split("/").slice(2);
-export function navigateStudio(hash: string) {
-  if (window.dispatchEvent(new Event("studio-navigate", { cancelable: true })))
-    location.hash = hash;
+export async function navigateStudio(hash: string) {
+  if (await requestNavigation()) location.hash = hash;
 }
 function Field({
   label,
@@ -159,7 +168,7 @@ function exportBrief(w: WorkItem, data: Workspace) {
         })[c]!,
     );
   const v = valueModel(w.economics);
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(w.title)}</title><style>body{font:16px/1.6 Arial;max-width:950px;margin:40px auto;padding:20px;color:#202020}h1{border-top:5px solid #ff6428;padding-top:20px}h2{margin-top:32px}pre{white-space:pre-wrap;background:#f3ece6;padding:20px}td,th{padding:10px;text-align:left;border-bottom:1px solid #cec2b9}small{color:#584f4a}</style></head><body><small>ERANEOS · AI VISION STUDIO · ${today()}</small><h1>${esc(w.title)}</h1>${w.id.startsWith("example-") ? "<p><strong>ILLUSTRATIVE EXAMPLE — not client data or measured results.</strong></p>" : ""}<p>${esc(w.kind)} · ${esc(w.stage)} · Declared owner: ${esc(w.owner || "Unassigned")}</p><h2>Problem and evidence</h2><p>${esc(w.problem)}</p><p>${esc(w.evidence)}: ${esc(w.evidenceNote || "No evidence recorded")}</p><h2>Design</h2><p>${esc(w.design)}</p><p>Alternative: ${esc(w.alternative)}</p><p>Objective: ${esc(data.objectives.find((x) => x.id === w.objectiveId)?.title || "Not linked")}<br>Target shift: ${esc(data.nodes.find((x) => x.id === w.nodeId)?.label || "Not linked")}</p><h2>Annual base scenario · EUR · assumptions, not actuals</h2><p>Released hours: ${number(v.hours)} · Capacity value: ${money(v.capacity)} · Cashable benefit: ${money(v.cash)} · Net cash: ${money(v.net)}</p><p>Overlap group: ${esc(w.overlap || "Not specified")} · No portfolio sum calculated.</p><p>${esc(w.assumptionsNote || "Assumption sources not recorded")}</p><pre>${esc(JSON.stringify(w.economics, null, 2))}</pre><h2>Experiment</h2><pre>${esc(JSON.stringify(w.experiment, null, 2))}</pre><h2>Observations</h2><pre>${esc(JSON.stringify(w.observations, null, 2))}</pre><h2>Decision history</h2><p>Entered through a shared team account; declared owners are not verified identities.</p><pre>${esc(JSON.stringify(w.decisions, null, 2))}</pre><h2>Enablement</h2><pre>${esc(
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(w.title)}</title><style>body{font:16px/1.6 Arial;max-width:950px;margin:40px auto;padding:20px;color:#202020}h1{border-top:5px solid #ff6428;padding-top:20px}h2{margin-top:32px}pre{white-space:pre-wrap;background:#f3ece6;padding:20px}td,th{padding:10px;text-align:left;border-bottom:1px solid #cec2b9}small{color:#584f4a}</style></head><body><small>ERANEOS · AI VISION STUDIO · ${today()}</small><h1>${esc(w.title)}</h1>${w.id.startsWith("example-") ? "<p><strong>ILLUSTRATIVE EXAMPLE — not client data or measured results.</strong></p>" : ""}<p>${esc(w.kind)} · ${esc(w.stage)} · Declared owner: ${esc(w.owner || "Unassigned")}</p><h2>Problem and evidence</h2><p>${esc(w.problem)}</p><p>${esc(w.evidence)}: ${esc(w.evidenceNote || "No evidence recorded")}</p><h2>Design</h2><p>${esc(w.design)}</p><p>Alternative: ${esc(w.alternative)}</p><h2>Human–AI working approach</h2><pre>${esc(JSON.stringify(w.workDesign || {}, null, 2))}</pre><p>Objective: ${esc(data.objectives.find((x) => x.id === w.objectiveId)?.title || "Not linked")}<br>Target shift: ${esc(data.nodes.find((x) => x.id === w.nodeId)?.label || "Not linked")}</p><h2>Annual base scenario · EUR · assumptions, not actuals</h2><p>Released hours: ${number(v.hours)} · Capacity value: ${money(v.capacity)} · Cashable benefit: ${money(v.cash)} · Net cash: ${money(v.net)}</p><p>Overlap group: ${esc(w.overlap || "Not specified")} · No portfolio sum calculated.</p><p>${esc(w.assumptionsNote || "Assumption sources not recorded")}</p><pre>${esc(JSON.stringify(w.economics, null, 2))}</pre><h2>Experiment</h2><pre>${esc(JSON.stringify(w.experiment, null, 2))}</pre><h2>Observations</h2><pre>${esc(JSON.stringify(w.observations, null, 2))}</pre><h2>Decision history</h2><p>Entered through a shared team account; declared owners are not verified identities.</p><pre>${esc(JSON.stringify(w.decisions, null, 2))}</pre><h2>Enablement</h2><pre>${esc(
     JSON.stringify(
       w.enablement.map((a) => ({
         ...a,
@@ -186,7 +195,9 @@ export default function Workbench({
 }) {
   const data = snapshot.data;
   const [path, setPath] = useState(route());
-  const [view, setView] = useState("List");
+  const [view, setView] = useState(
+    (snapshot.data.workItems || []).length ? "Landscape" : "Sprint room",
+  );
   const [search, setSearch] = useState("");
   const [process, setProcess] = useState("All processes");
   const [session, setSession] = useState("All sessions");
@@ -194,7 +205,15 @@ export default function Workbench({
   const [demo, setDemo] = useState(false);
   const examples = useMemo(sampleItems, []);
   const all = demo ? examples : data.workItems || [];
+  const sessionName = (w: WorkItem) =>
+    data.sprintSessions?.find((s) => s.id === w.sessionId)?.title ||
+    w.session ||
+    "Unassigned session";
   const [capture, setCapture] = useState<WorkItem | null>(null);
+  useEffect(() => {
+    if (capture)
+      document.querySelector<HTMLInputElement>(".wb-capture input")?.focus();
+  }, [capture?.id]);
   const [draft, setDraft] = useState<WorkItem | null>(null);
   const [base, setBase] = useState<WorkItem | null>(null);
   const [baseRevision, setBaseRevision] = useState(snapshot.revision);
@@ -253,21 +272,20 @@ export default function Workbench({
     action.criterion
   );
   const dirty =
-    (!!capture && (!!capture.title || !!capture.problem)) ||
+    (!!capture &&
+      (!!capture.title ||
+        !!capture.problem ||
+        !!capture.process ||
+        !!capture.session ||
+        !!capture.categories.length)) ||
     (!!draft && JSON.stringify(draft) !== JSON.stringify(base));
   const dirtyRef = useRef(dirty);
   dirtyRef.current = dirty || entryPending;
   useEffect(() => {
     const guard = (e: Event) => {
-      if (dirtyRef.current) {
-        if (
-          !window.confirm(
-            "You have unsaved changes. Discard them and leave? Choose Cancel to continue editing or save first.",
-          )
-        )
-          e.preventDefault();
-        else dirtyRef.current = false;
-      }
+      protectNavigation(e, dirtyRef.current, () => {
+        dirtyRef.current = false;
+      });
     };
     const unload = (e: BeforeUnloadEvent) => {
       if (dirtyRef.current) {
@@ -283,15 +301,22 @@ export default function Workbench({
     };
   }, []);
   useEffect(() => {
-    const change = () => {
+    let checking = false;
+    const change = async () => {
+      if (checking || !location.hash.startsWith("#/workbench")) return;
+      const requested = location.hash;
       if (
         dirtyRef.current &&
         route()[0] !== id &&
-        location.hash !== lastHash.current &&
-        !window.confirm("Discard unsaved changes? Cancel keeps your draft.")
+        location.hash !== lastHash.current
       ) {
+        checking = true;
         history.replaceState(null, "", lastHash.current);
-        return;
+        const allowed = await confirmDiscard();
+        checking = false;
+        if (!allowed) return;
+        dirtyRef.current = false;
+        history.replaceState(null, "", requested);
       }
       lastHash.current = location.hash;
       setPath(route());
@@ -334,11 +359,11 @@ export default function Workbench({
       status: "Planned",
     });
   }, [id, demo]);
-  function open(w: WorkItem) {
-    if (dirtyRef.current && !confirm("Discard unsaved changes?")) return;
+  async function open(w: WorkItem, targetSection = "Discover") {
+    if (dirtyRef.current && !(await confirmDiscard())) return;
     dirtyRef.current = false;
     setCapture(null);
-    lastHash.current = `#/workbench/${w.id}/Discover`;
+    lastHash.current = `#/workbench/${w.id}/${encodeURIComponent(targetSection)}`;
     location.hash = lastHash.current;
   }
   function goSection(s: string) {
@@ -346,8 +371,8 @@ export default function Workbench({
     history.pushState(null, "", lastHash.current);
     setPath(route());
   }
-  function back() {
-    if (dirtyRef.current && !confirm("Discard unsaved changes?")) return;
+  async function back() {
+    if (dirtyRef.current && !(await confirmDiscard())) return;
     dirtyRef.current = false;
     setDraft(null);
     setCapture(null);
@@ -421,8 +446,7 @@ export default function Workbench({
     (w) =>
       (process === "All processes" ||
         (w.process || "Unassigned process") === process) &&
-      (session === "All sessions" ||
-        (w.session || "Unassigned session") === session) &&
+      (session === "All sessions" || sessionName(w) === session) &&
       (kind === "All items" || w.kind === kind) &&
       `${w.title} ${w.problem} ${w.owner}`
         .toLowerCase()
@@ -432,7 +456,10 @@ export default function Workbench({
     ...new Set(all.map((w) => w.process || "Unassigned process")),
   ];
   const sessions = [
-    ...new Set(all.map((w) => w.session || "Unassigned session")),
+    ...new Set([
+      ...all.map(sessionName),
+      ...(data.sprintSessions || []).map((s) => s.title),
+    ]),
   ];
   const stats = cellSummary(all);
   const selected = all.filter((w) => selection.includes(w.id));
@@ -562,7 +589,7 @@ export default function Workbench({
     const v = valueModel(draft.economics);
     const missing = readiness(draft);
     return (
-      <div className="workbench">
+      <div className="workbench" inert={saving} aria-busy={saving}>
         <div className="wb-record-head">
           <button className="wb-back" onClick={back}>
             <ArrowLeft size={16} />
@@ -681,7 +708,23 @@ export default function Workbench({
                   <Field
                     label="Discovery session"
                     value={draft.session}
-                    onChange={(v) => put("session", v)}
+                    onChange={(v) => {
+                      put("session", v);
+                      put("sessionId", "");
+                    }}
+                  />
+                  <Select
+                    label="Link a saved sprint session"
+                    value={draft.sessionId || ""}
+                    options={linked(data.sprintSessions || [])}
+                    onChange={(v) => {
+                      put("sessionId", v);
+                      if (v)
+                        put(
+                          "session",
+                          data.sprintSessions!.find((s) => s.id === v)!.title,
+                        );
+                    }}
                   />
                   <Field
                     label="Declared owner"
@@ -749,6 +792,10 @@ export default function Workbench({
             )}
             {section === "Design" && (
               <>
+                <WorkDesignCanvas
+                  value={draft.workDesign}
+                  onChange={(v) => put("workDesign", v)}
+                />
                 <div className="wb-section-title">
                   <Layers />
                   <div>
@@ -757,7 +804,7 @@ export default function Workbench({
                   </div>
                 </div>
                 <Field
-                  label="Future workflow, human review and exception handling"
+                  label="Concept summary / additional context"
                   type="textarea"
                   value={draft.design}
                   onChange={(v) => put("design", v)}
@@ -1399,18 +1446,37 @@ export default function Workbench({
             </small>
           </aside>
         </div>
+        <ChallengerPanel
+          key={draft.id}
+          record={draft}
+          revision={baseRevision}
+          dirty={!!dirty || entryPending}
+          demo={demo}
+          onApply={(edits) => {
+            setDraft((d) => {
+              if (!d) return d;
+              const next = { ...d };
+              for (const edit of edits) next[edit.field] = edit.proposed;
+              return next;
+            });
+            setMessage("AI suggestions added to draft. Review before saving.");
+          }}
+        />
       </div>
     );
   }
   return (
-    <div className="workbench">
+    <div className="workbench" inert={saving} aria-busy={saving}>
       {demo && (
         <div className="wb-demo">
           <strong>Example landscape</strong> · illustrative records, not client
           data.{" "}
           <button
-            onClick={() => {
+            onClick={async () => {
+              if (!(await requestNavigation())) return;
+              setCapture(null);
               setDemo(false);
+              setView("Sprint room");
               setCell(null);
               setSelection([]);
             }}
@@ -1435,21 +1501,25 @@ export default function Workbench({
             <button
               className="wb-accent"
               disabled={demo}
-              onClick={() =>
+              onClick={async () => {
+                if (!(await requestNavigation())) return;
                 setCapture({
                   ...newWorkItem(),
                   process: process === "All processes" ? "" : process,
                   session: session === "All sessions" ? "" : session,
-                })
-              }
+                });
+              }}
             >
               <Plus size={17} />
               Capture idea
             </button>
             <button
               className="wb-hero-secondary"
-              onClick={() => {
+              onClick={async () => {
+                if (!(await requestNavigation())) return;
+                setCapture(null);
                 setDemo(!demo);
+                setView(demo ? "Sprint room" : "Landscape");
                 setCell(null);
                 setSelection([]);
                 setProcess("All processes");
@@ -1531,9 +1601,8 @@ export default function Workbench({
           <div className="section-heading">
             <h3>Capture the problem while it’s fresh</h3>
             <button
-              onClick={() => {
-                if (!dirty || confirm("Discard this unsaved idea?"))
-                  setCapture(null);
+              onClick={async () => {
+                if (!dirty || (await confirmDiscard())) setCapture(null);
               }}
             >
               Close
@@ -1580,16 +1649,20 @@ export default function Workbench({
       <div className="wb-toolbar">
         <nav aria-label="Workbench views">
           {[
+            { v: "Sprint room", i: Lightbulb },
             { v: "List", i: List },
             { v: "Landscape", i: Grid2X2 },
             { v: "Review", i: SlidersHorizontal },
             { v: "Enablement", i: Users },
+            { v: "Deliverables", i: Layers },
           ].map(({ v, i: Icon }) => (
             <button
               key={v}
               aria-pressed={view === v}
               className={view === v ? "active" : ""}
-              onClick={() => {
+              onClick={async () => {
+                if (!(await requestNavigation())) return;
+                setCapture(null);
                 setView(v);
                 setCell(null);
               }}
@@ -1606,68 +1679,100 @@ export default function Workbench({
           {filtered.length} of {all.length} records
         </span>
       </div>
-      <div className="wb-filters">
-        <label className="wb-search">
-          <Search size={17} />
-          <input
-            aria-label="Search workbench"
-            placeholder="Search problems, ideas or owners…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </label>
-        <select
-          aria-label="Process filter"
-          value={process}
-          onChange={(e) => {
-            setProcess(e.target.value);
-            setCell(null);
+      {view === "Sprint room" && (
+        <SprintRoom
+          snapshot={snapshot}
+          onSnapshot={onSnapshot}
+          demo={demo}
+          onFilter={async (title) => {
+            if (!(await requestNavigation())) return;
+            setSession(title);
+            setView("List");
           }}
-        >
-          <option>All processes</option>
-          {processes.map((p) => (
-            <option key={p}>{p}</option>
-          ))}
-        </select>
-        <select
-          aria-label="Session filter"
-          value={session}
-          onChange={(e) => {
-            setSession(e.target.value);
-            setCell(null);
+          onCapture={(category, s) => {
+            setCapture({
+              ...newWorkItem(),
+              categories: [category],
+              session: s?.title || "",
+              sessionId: s?.id || "",
+              methodVersion: "studio-guidance-2",
+            });
+            setView("List");
           }}
-        >
-          <option>All sessions</option>
-          {sessions.map((s) => (
-            <option key={s}>{s}</option>
-          ))}
-        </select>
-        <select
-          aria-label="Record type filter"
-          value={kind}
-          onChange={(e) => setKind(e.target.value)}
-        >
-          <option>All items</option>
-          <option value="idea">Ideas</option>
-          <option value="usecase">Use cases</option>
-        </select>
-        {(search ||
-          process !== "All processes" ||
-          session !== "All sessions" ||
-          kind !== "All items") && (
-          <button
-            onClick={() => {
-              setSearch("");
-              setProcess("All processes");
-              setSession("All sessions");
-              setKind("All items");
+        />
+      )}
+      {view !== "Sprint room" && (
+        <div className="wb-filters">
+          <label className="wb-search">
+            <Search size={17} />
+            <input
+              aria-label="Search workbench"
+              placeholder="Search problems, ideas or owners…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </label>
+          <select
+            aria-label="Process filter"
+            value={process}
+            onChange={(e) => {
+              setProcess(e.target.value);
               setCell(null);
             }}
           >
-            Clear filters
-          </button>
-        )}
-      </div>
+            <option>All processes</option>
+            {processes.map((p) => (
+              <option key={p}>{p}</option>
+            ))}
+          </select>
+          <select
+            aria-label="Session filter"
+            value={session}
+            onChange={(e) => {
+              setSession(e.target.value);
+              setCell(null);
+            }}
+          >
+            <option>All sessions</option>
+            {sessions.map((s) => (
+              <option key={s}>{s}</option>
+            ))}
+          </select>
+          <select
+            aria-label="Record type filter"
+            value={kind}
+            onChange={(e) => setKind(e.target.value)}
+          >
+            <option>All items</option>
+            <option value="idea">Ideas</option>
+            <option value="usecase">Use cases</option>
+          </select>
+          {(search ||
+            process !== "All processes" ||
+            session !== "All sessions" ||
+            kind !== "All items") && (
+            <button
+              onClick={() => {
+                setSearch("");
+                setProcess("All processes");
+                setSession("All sessions");
+                setKind("All items");
+                setCell(null);
+              }}
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+      )}
+      {view === "Deliverables" && (
+        <DeliveryReadiness
+          items={filtered}
+          onOpen={(w) => {
+            open(w, "Design");
+          }}
+        />
+      )}
       {view === "List" && (
         <>
           <div className="wb-list-heading">
@@ -2004,29 +2109,30 @@ export default function Workbench({
           )}
         </section>
       )}
-      {!filtered.length && view !== "Review" && (
-        <section className="wb-empty">
-          <Lightbulb size={30} />
-          <h3>
-            {all.length
-              ? "No records match these filters"
-              : "Every opportunity starts with a real problem"}
-          </h3>
-          <p>
-            {all.length
-              ? "Clear filters to see your full landscape."
-              : "Capture your first idea, or explore the example landscape before starting a session."}
-          </p>
-          {!all.length && (
-            <button
-              className="primary"
-              onClick={() => setCapture(newWorkItem())}
-            >
-              Capture the first idea <Plus size={16} />
-            </button>
-          )}
-        </section>
-      )}
+      {!filtered.length &&
+        !["Review", "Sprint room", "Deliverables"].includes(view) && (
+          <section className="wb-empty">
+            <Lightbulb size={30} />
+            <h3>
+              {all.length
+                ? "No records match these filters"
+                : "Every opportunity starts with a real problem"}
+            </h3>
+            <p>
+              {all.length
+                ? "Clear filters to see your full landscape."
+                : "Capture your first idea, or explore the example landscape before starting a session."}
+            </p>
+            {!all.length && (
+              <button
+                className="primary"
+                onClick={() => setCapture(newWorkItem())}
+              >
+                Capture the first idea <Plus size={16} />
+              </button>
+            )}
+          </section>
+        )}
       <div className="wb-footnote">
         Facilitator-led workspace · designate one scribe · capability library
         provisional v1

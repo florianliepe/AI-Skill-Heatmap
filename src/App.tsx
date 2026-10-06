@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import Workbench from "./Workbench";
+import { requestNavigation } from "./navigation";
 import {
   ArrowDownToLine,
   ArrowRight,
@@ -109,28 +110,29 @@ export default function App() {
   const pageRef = useRef(page);
   pageRef.current = page;
   const acceptedHash = useRef(location.hash);
-  function setPage(next: Page) {
-    if (
-      !window.dispatchEvent(new Event("studio-navigate", { cancelable: true }))
-    )
-      return;
+  async function setPage(next: Page) {
+    if (!(await requestNavigation())) return;
     const hash =
       next === "Workbench" ? "#/workbench" : "#/" + encodeURIComponent(next);
     location.hash = hash;
     acceptedHash.current = hash;
+    setEditing(null);
     setPageState(next);
   }
   useEffect(() => {
-    const changed = () => {
+    let checking = false;
+    const changed = async () => {
+      if (checking) return;
       const next = pageFromHash();
-      if (
-        next !== pageRef.current &&
-        !window.dispatchEvent(
-          new Event("studio-navigate", { cancelable: true }),
-        )
-      ) {
+      if (next !== pageRef.current) {
+        checking = true;
+        const requested = location.hash;
         history.replaceState(null, "", acceptedHash.current);
-        return;
+        const allowed = await requestNavigation();
+        checking = false;
+        if (!allowed) return;
+        setEditing(null);
+        history.replaceState(null, "", requested);
       }
       acceptedHash.current = location.hash;
       setPageState(next);
@@ -166,12 +168,8 @@ export default function App() {
     () => (data ? [...new Set(data.skills.map((s) => s.family))] : []),
     [data],
   );
-  const logout = (force = false) => {
-    if (
-      !force &&
-      !window.dispatchEvent(new Event("studio-navigate", { cancelable: true }))
-    )
-      return;
+  const logout = async (force = false) => {
+    if (!force && !(await requestNavigation())) return;
     api.clearSession();
     setSnapshot(null);
     setPassword("");

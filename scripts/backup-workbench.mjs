@@ -10,6 +10,6 @@ await fs.writeFile(path,JSON.stringify({rows,workflow},null,2));
 const row=rows.data.find(r=>r.workspace==='main');
 const before={data:JSON.parse(row.payload),revision:row.revision};
 const migrated=applyMutation(before,{action:'read'}).response;
-for(const key of Object.keys(before.data))assert.deepEqual(migrated.data[key],before.data[key]);
+for(const key of Object.keys(before.data).filter(k=>k!=='schemaVersion'))assert.deepEqual(migrated.data[key],before.data[key]);
 const restored=JSON.parse(JSON.stringify(before));assert.deepEqual(restored,before);
 console.log('Private backup saved; additive normalization and backup round-trip verified. Revision:',before.revision);

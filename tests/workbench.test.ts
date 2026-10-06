@@ -113,7 +113,7 @@ describe("Workbench migration and server contract", () => {
     );
     expect(out.write).toBe(false);
     expect(out.response.data.workItems).toEqual([]);
-    expect(out.response.data.schemaVersion).toBe(2);
+    expect(out.response.data.schemaVersion).toBe(3);
     expect(legacy).not.toHaveProperty("workItems");
     expect(out.response.data.objectives).toEqual(legacy.objectives);
   });

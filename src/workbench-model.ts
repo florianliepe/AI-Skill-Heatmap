@@ -33,6 +33,8 @@ export type Economics = {
   setup: number | null;
 };
 export type WorkItem = {
+  sessionId?: string;
+  workDesign?: import("./sprint-model").WorkDesign;
   id: string;
   kind: "idea" | "usecase";
   title: string;
@@ -278,6 +280,21 @@ export function sampleItems(): WorkItem[] {
     owner: "Example owner",
   }));
   Object.assign(items[0], {
+    workDesign: {
+      currentWork:
+        "Manual clarification across requester, service provider and developer.",
+      input: "Requester notes, system constraints and approved standards.",
+      aiTask:
+        "Structure a requirements draft and flag missing acceptance criteria.",
+      humanJudgment:
+        "Requirements engineer challenges the proposal; requester confirms the need.",
+      handover:
+        "Developer confirms readiness. Unresolved critical gaps return to the requester.",
+      output:
+        "Reviewed requirements package with source links and acceptance criteria.",
+      tools: "Approved knowledge store and controlled workflow service.",
+      autonomy: "AI augmented",
+    },
     stage: "Piloting",
     design:
       "AI structures source material and challenges gaps. A requirements engineer reviews the package; the developer confirms readiness.",

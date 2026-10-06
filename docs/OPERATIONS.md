@@ -1,5 +1,17 @@
 # Operating the MVP
 
+## Guided sprint room and contextual challenger
+
+Open Workbench → Sprint room to choose a module, create a scoped session and explore capability cards. The six capability families and all new prompts remain original, provisional guidance; the newly supplied password-protected Miro board has not been imported. New training should be verified and versioned before replacing these families.
+
+Capture an opportunity from a card to retain its category and selected session. Develop it into a use case, then fill the human–AI canvas in Design. Deliverables shows which filtered cases still need target, workflow or enablement links. Its counts assess completeness only.
+
+On a saved case, Ask challenger returns reviewable suggestions. Nothing is saved automatically. Select individual replacements and use Apply selected to draft; review and Save changes separately. A stale workspace blocks application. Source claims in suggestions still need human verification. Example mode does not call the AI service. The original global strategy assistant remains a separate read-only feature.
+
+`node scripts/deploy-challenger.mjs` deploys two workflows with existing team/gateway credentials: the contextual challenger and selected-case reader. `node scripts/test-sprint-api.mjs` tests session persistence, reference protection, challenger authentication, scoped tool use and unchanged data after inference, then removes its own test cases. Gateway credentials and expiration management are shared with the original assistant. Agent availability is not a prerequisite for manual workshop work.
+
+In-app discard prompts now use a nonblocking accessible dialog. Keep editing and Escape preserve the draft; Discard changes permits navigation. The browser's own unload warning remains for closing/reloading a tab. No offline draft persistence is implied.
+
 ## Facilitating the workbench
 
 Use one designated scribe per workshop. Capture title and problem, then add process/session and capability mapping. Develop a saved idea into a linked use case. Follow Discover → Design → Estimate value → Prioritize pilot → Track outcomes. Record comparison criteria, a baseline collection plan and a next review before advancing the pilot.
