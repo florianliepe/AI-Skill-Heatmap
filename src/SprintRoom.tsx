@@ -16,6 +16,7 @@ import {
 } from "./sprint-model";
 import { protectNavigation, confirmDiscard } from "./navigation";
 import * as api from "./api";
+import MethodGuide from "./MethodGuide";
 
 const modules = [
   {
@@ -259,13 +260,14 @@ export default function SprintRoom({
         </div>
         <div className="sprint-method">
           <BookOpen />
-          <strong>Working method · v2</strong>
+          <strong>Working method · v3</strong>
           <p>
-            Original facilitation guidance. Six provisional capability families;
-            source-specific training remains subject to verification.
+            Mapping, task design and pilot prioritization. Six provisional
+            capability families; new AI cards pending review.
           </p>
         </div>
       </section>
+      <MethodGuide />
       <div className="sprint-module-tabs" aria-label="Sprint modules">
         {modules.map((m, i) => (
           <button

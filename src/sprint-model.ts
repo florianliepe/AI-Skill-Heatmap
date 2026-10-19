@@ -18,6 +18,7 @@ export type SprintSession = {
   outcome: string;
 };
 export type WorkDesign = {
+  tasks?: DesignTask[];
   currentWork: string;
   input: string;
   aiTask: string;
@@ -27,6 +28,39 @@ export type WorkDesign = {
   tools: string;
   autonomy: string;
 };
+export const taskModes = [
+  "Human",
+  "Rules / automation",
+  "AI assisted",
+  "Bounded agent",
+] as const;
+export type DesignTask = {
+  id: string;
+  title: string;
+  input: string;
+  output: string;
+  owner: string;
+  mode: string;
+  acceptance: string;
+  exception: string;
+  cardReference: string;
+};
+export const newTask = (): DesignTask => ({
+  id: crypto.randomUUID(),
+  title: "",
+  input: "",
+  output: "",
+  owner: "",
+  mode: "Human",
+  acceptance: "",
+  exception: "",
+  cardReference: "",
+});
+export function taskGaps(task: DesignTask) {
+  return (
+    ["title", "input", "output", "owner", "acceptance", "exception"] as const
+  ).filter((key) => !task[key].trim());
+}
 export const emptyDesign = (): WorkDesign => ({
   currentWork: "",
   input: "",
@@ -45,7 +79,7 @@ export const newSession = (): SprintSession => ({
   facilitator: "",
   participants: "",
   module: "Opportunity mapping",
-  methodVersion: "studio-guidance-2",
+  methodVersion: "studio-guidance-3",
   date: "",
   outcome: "",
 });
@@ -134,14 +168,16 @@ export function deliveryCoverage(items: WorkItem[]) {
       title: "AI working approach",
       test: (w: WorkItem) => {
         const d = { ...emptyDesign(), ...w.workDesign };
-        return [
-          "currentWork",
-          "input",
-          "aiTask",
-          "humanJudgment",
-          "handover",
-          "output",
-        ].every((k) => !!d[k as keyof WorkDesign].trim());
+        return (
+          [
+            "currentWork",
+            "input",
+            "aiTask",
+            "humanJudgment",
+            "handover",
+            "output",
+          ] as const
+        ).every((k) => !!d[k].trim());
       },
       missing: "Describe inputs, AI work, human judgment, handover and outputs",
       section: "Design",

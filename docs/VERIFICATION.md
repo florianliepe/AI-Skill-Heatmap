@@ -57,3 +57,11 @@ This is an MVP acceptance pass, not a penetration test or a full accessibility a
 - Proficiency uses four neutral shades; gaps and upskilling use orange shades. Numeric labels remain present. Unassessed cells retain a gray hatch and question mark; unmapped cells use a dashed border and plus sign.
 - Catalog scoring guide, stronger table headers, status badges, selected controls and portfolio family legend improve distinctions without changing stored data.
 - Production build and all 11 existing tests pass. Browser preview verified catalog, target/gap legends and portfolio legend. Sampled heatmap text/background contrast pairs range from 5.07:1 to 16.29:1; this is not a full accessibility audit.
+# Method enrichment — 19 October 2026
+
+- Miro connector board overview and focused SVG reads succeeded. The ideation-to-prioritization sequence and business-impact cue were verified. Embedded training documents and the complete card taxonomy remain unverified; incoming cards are not yet imported.
+- 35 unit tests passed. New cases cover legacy defaults, task ordering/removal, task IDs/modes/size bounds, feasibility validation, and exclusion of unknown/archived/idea records from the priority matrix.
+- Backend backed up at revision 80, then updated. Live API checks passed for task persistence, reorder/removal, feasibility, invalid inputs and stale-write rejection. The temporary record was removed; all existing entity collections compared equal afterward.
+- Browser checked matrix placement (illustrative impact 4 / feasibility 3), unknown cases and case drill-down. Task add, reorder and remove controls were exercised in isolated example mode.
+- A 390px mobile test found task-editor overflow. Corrected minimum-width constraints; document scroll width now matches the viewport (375px excluding scrollbar). Task sequence and matrix use internal horizontal scrolling.
+- Production build passed. GitHub publication is verified separately against the release commit. The earlier decision-brief download completion gap is not closed by these checks; its content now includes task design and feasibility.

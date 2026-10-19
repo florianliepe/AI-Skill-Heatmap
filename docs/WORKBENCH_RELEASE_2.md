@@ -2,6 +2,8 @@
 
 Date: 6 October 2026. Builds on hardened concept v2 and the shipped H01–H08 release.
 
+Update, 19 October: Miro connector access is now verified. See [release 3](WORKBENCH_RELEASE_3.md) for methodology, task decomposition and prioritization. The access blocker below is historical; detailed card enrichment awaits the new source material.
+
 ## Goal and execution instructions
 
 Connect sprint activities to useful, persisted decisions: scoped discovery, capability exploration, human–AI work design, pilot selection and the three deliverables (target picture, working approach, team enablement). Preserve existing records and the Eraneos charcoal / warm neutral / orange design. A heatmap is an evidence view, not a claim of measured benefits.

@@ -121,6 +121,62 @@ export function applyMutation(snapshot, request) {
         return fail("Select an existing sprint session.");
       const design = raw.workDesign || {};
       record.workDesign = {};
+      const tasks = design.tasks ?? [];
+      if (!Array.isArray(tasks) || tasks.length > 30)
+        return fail("Use up to 30 tasks per use case.");
+      const taskIds = new Set();
+      record.workDesign.tasks = [];
+      for (const task of tasks) {
+        if (
+          !task ||
+          typeof task.id !== "string" ||
+          !/^[\w-]{1,90}$/.test(task.id) ||
+          taskIds.has(task.id)
+        )
+          return fail("Every task needs a unique identifier.");
+        taskIds.add(task.id);
+        if (
+          ![
+            "Human",
+            "Rules / automation",
+            "AI assisted",
+            "Bounded agent",
+          ].includes(task.mode)
+        )
+          return fail("Choose a valid task execution mode.");
+        const clean = { id: task.id, mode: task.mode };
+        for (const key of [
+          "title",
+          "input",
+          "output",
+          "owner",
+          "acceptance",
+          "exception",
+          "cardReference",
+        ]) {
+          const value = task[key] ?? "";
+          if (typeof value !== "string" || value.length > 4000)
+            return fail("Invalid task field: " + key);
+          clean[key] = value;
+        }
+        record.workDesign.tasks.push(clean);
+      }
+      const feasibility = raw.feasibility ?? {};
+      const score = feasibility.score ?? null;
+      if (
+        score !== null &&
+        (!Number.isInteger(score) || score < 1 || score > 5)
+      )
+        return fail(
+          "Feasibility must be unassessed or a whole number from 1 to 5.",
+        );
+      record.feasibility = { score };
+      for (const key of ["rationale", "risks"]) {
+        const value = feasibility[key] ?? "";
+        if (typeof value !== "string" || value.length > 12000)
+          return fail("Invalid feasibility field: " + key);
+        record.feasibility[key] = value;
+      }
       for (const key of [
         "currentWork",
         "input",

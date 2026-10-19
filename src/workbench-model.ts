@@ -33,6 +33,7 @@ export type Economics = {
   setup: number | null;
 };
 export type WorkItem = {
+  feasibility?: { score: number | null; rationale: string; risks: string };
   sessionId?: string;
   workDesign?: import("./sprint-model").WorkDesign;
   id: string;
@@ -280,7 +281,50 @@ export function sampleItems(): WorkItem[] {
     owner: "Example owner",
   }));
   Object.assign(items[0], {
+    feasibility: {
+      score: 3,
+      rationale:
+        "Illustrative: source access exists; evaluation and integration still need testing.",
+      risks:
+        "Illustrative: omitted requirements and unsupported statements require human review.",
+    },
     workDesign: {
+      tasks: [
+        {
+          id: "example-task-1",
+          title: "Confirm request and sources",
+          input: "Requester notes and approved standards",
+          output: "Agreed scope and source pack",
+          owner: "Business partner",
+          mode: "Human",
+          acceptance: "Scope and source ownership confirmed",
+          exception: "Return missing sources to requester",
+          cardReference: "",
+        },
+        {
+          id: "example-task-2",
+          title: "Draft and challenge requirements",
+          input: "Agreed scope and source pack",
+          output: "Draft with source links and open questions",
+          owner: "Requirements engineer",
+          mode: "AI assisted",
+          acceptance: "Every statement traceable; gaps made explicit",
+          exception: "Stop on conflicting sources; ask the accountable expert",
+          cardReference: "",
+        },
+        {
+          id: "example-task-3",
+          title: "Approve development handover",
+          input: "Reviewed draft and resolved questions",
+          output: "Ready-to-develop package",
+          owner: "Developer and requirements engineer",
+          mode: "Human",
+          acceptance: "Definition of ready confirmed",
+          exception:
+            "Return unresolved critical requirements for clarification",
+          cardReference: "",
+        },
+      ],
       currentWork:
         "Manual clarification across requester, service provider and developer.",
       input: "Requester notes, system constraints and approved standards.",

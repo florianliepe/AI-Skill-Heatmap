@@ -38,6 +38,10 @@ The TypeScript entity definitions in `src/types.ts` are the frontend contract. S
 
 ## Persistence
 
+Method enrichment (19 October 2026, additive schema 3): `workItems.workDesign.tasks` is an optional ordered array of at most 30 tasks. Each task has a stable unique ID, title, input, output, declared owner, mode (Human / Rules / automation / AI assisted / Bounded agent), acceptance check, exception/fallback, and optional card reference. Text fields allow 4,000 characters and incomplete drafts. `workItems.feasibility` contains a nullable integer score 1–5, rationale and risks. Legacy records normalize these fields on their next save; reads preserve the original data. Card references are notes, not validated foreign keys to a card library.
+
+Review plots only non-archived use cases with impact, impact evidence, feasibility score, feasibility rationale and risk notes. The remaining use cases appear in Needs assessment. Existing filters apply; opportunity ideas are excluded. These are judgment-based assessments, not measured ROI or approval decisions.
+
 The n8n table has `workspace` (string), `revision` (number), and `payload` (JSON string) columns plus n8n system columns. One row stores the workspace. A mutation reads that row, validates the expected revision and writes only when both workspace and revision still match. Zero updated rows return an explicit conflict. The response contains the committed snapshot. A live parallel-request test verifies that only one of two writes using the same revision succeeds.
 
 This is an MVP design for a small workshop team. It intentionally serializes changes to one workspace; a multi-workspace or high-write deployment should use a transactional database with record-level revisions. Payloads are capped at 1.5 million characters and collections at 2,000 records. Deleting an objective cascades to its key results; deleting a skill or role cascades to its assessments; deleting a node cascades to its connections.

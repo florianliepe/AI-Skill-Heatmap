@@ -52,6 +52,7 @@ import SprintRoom from "./SprintRoom";
 import WorkDesignCanvas from "./WorkDesignCanvas";
 import DeliveryReadiness from "./DeliveryReadiness";
 import ChallengerPanel from "./ChallengerPanel";
+import PriorityMap, { FeasibilityEditor } from "./PriorityMap";
 import "./sprint.css";
 const tabs = [
   "Discover",
@@ -168,7 +169,7 @@ function exportBrief(w: WorkItem, data: Workspace) {
         })[c]!,
     );
   const v = valueModel(w.economics);
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(w.title)}</title><style>body{font:16px/1.6 Arial;max-width:950px;margin:40px auto;padding:20px;color:#202020}h1{border-top:5px solid #ff6428;padding-top:20px}h2{margin-top:32px}pre{white-space:pre-wrap;background:#f3ece6;padding:20px}td,th{padding:10px;text-align:left;border-bottom:1px solid #cec2b9}small{color:#584f4a}</style></head><body><small>ERANEOS · AI VISION STUDIO · ${today()}</small><h1>${esc(w.title)}</h1>${w.id.startsWith("example-") ? "<p><strong>ILLUSTRATIVE EXAMPLE — not client data or measured results.</strong></p>" : ""}<p>${esc(w.kind)} · ${esc(w.stage)} · Declared owner: ${esc(w.owner || "Unassigned")}</p><h2>Problem and evidence</h2><p>${esc(w.problem)}</p><p>${esc(w.evidence)}: ${esc(w.evidenceNote || "No evidence recorded")}</p><h2>Design</h2><p>${esc(w.design)}</p><p>Alternative: ${esc(w.alternative)}</p><h2>Human–AI working approach</h2><pre>${esc(JSON.stringify(w.workDesign || {}, null, 2))}</pre><p>Objective: ${esc(data.objectives.find((x) => x.id === w.objectiveId)?.title || "Not linked")}<br>Target shift: ${esc(data.nodes.find((x) => x.id === w.nodeId)?.label || "Not linked")}</p><h2>Annual base scenario · EUR · assumptions, not actuals</h2><p>Released hours: ${number(v.hours)} · Capacity value: ${money(v.capacity)} · Cashable benefit: ${money(v.cash)} · Net cash: ${money(v.net)}</p><p>Overlap group: ${esc(w.overlap || "Not specified")} · No portfolio sum calculated.</p><p>${esc(w.assumptionsNote || "Assumption sources not recorded")}</p><pre>${esc(JSON.stringify(w.economics, null, 2))}</pre><h2>Experiment</h2><pre>${esc(JSON.stringify(w.experiment, null, 2))}</pre><h2>Observations</h2><pre>${esc(JSON.stringify(w.observations, null, 2))}</pre><h2>Decision history</h2><p>Entered through a shared team account; declared owners are not verified identities.</p><pre>${esc(JSON.stringify(w.decisions, null, 2))}</pre><h2>Enablement</h2><pre>${esc(
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(w.title)}</title><style>body{font:16px/1.6 Arial;max-width:950px;margin:40px auto;padding:20px;color:#202020}h1{border-top:5px solid #ff6428;padding-top:20px}h2{margin-top:32px}pre{white-space:pre-wrap;background:#f3ece6;padding:20px}td,th{padding:10px;text-align:left;border-bottom:1px solid #cec2b9}small{color:#584f4a}</style></head><body><small>ERANEOS · AI VISION STUDIO · ${today()}</small><h1>${esc(w.title)}</h1>${w.id.startsWith("example-") ? "<p><strong>ILLUSTRATIVE EXAMPLE — not client data or measured results.</strong></p>" : ""}<p>${esc(w.kind)} · ${esc(w.stage)} · Declared owner: ${esc(w.owner || "Unassigned")}</p><h2>Problem and evidence</h2><p>${esc(w.problem)}</p><p>${esc(w.evidence)}: ${esc(w.evidenceNote || "No evidence recorded")}</p><h2>Design</h2><p>${esc(w.design)}</p><p>Alternative: ${esc(w.alternative)}</p><h2>Human–AI working approach</h2><pre>${esc(JSON.stringify(w.workDesign || {}, null, 2))}</pre><p>Objective: ${esc(data.objectives.find((x) => x.id === w.objectiveId)?.title || "Not linked")}<br>Target shift: ${esc(data.nodes.find((x) => x.id === w.nodeId)?.label || "Not linked")}</p><h2>Annual base scenario · EUR · assumptions, not actuals</h2><p>Released hours: ${number(v.hours)} · Capacity value: ${money(v.capacity)} · Cashable benefit: ${money(v.cash)} · Net cash: ${money(v.net)}</p><p>Overlap group: ${esc(w.overlap || "Not specified")} · No portfolio sum calculated.</p><p>${esc(w.assumptionsNote || "Assumption sources not recorded")}</p><pre>${esc(JSON.stringify(w.economics, null, 2))}</pre><h2>Pilot feasibility</h2><pre>${esc(JSON.stringify(w.feasibility || {}, null, 2))}</pre><h2>Experiment</h2><pre>${esc(JSON.stringify(w.experiment, null, 2))}</pre><h2>Observations</h2><pre>${esc(JSON.stringify(w.observations, null, 2))}</pre><h2>Decision history</h2><p>Entered through a shared team account; declared owners are not verified identities.</p><pre>${esc(JSON.stringify(w.decisions, null, 2))}</pre><h2>Enablement</h2><pre>${esc(
     JSON.stringify(
       w.enablement.map((a) => ({
         ...a,
@@ -1066,6 +1067,10 @@ export default function Workbench({
             )}
             {section === "Prioritize pilot" && (
               <>
+                <FeasibilityEditor
+                  value={draft.feasibility}
+                  onChange={(v) => put("feasibility", v)}
+                />
                 <div className="wb-section-title">
                   <FlaskConical />
                   <div>
@@ -1695,7 +1700,7 @@ export default function Workbench({
               categories: [category],
               session: s?.title || "",
               sessionId: s?.id || "",
-              methodVersion: "studio-guidance-2",
+              methodVersion: "studio-guidance-3",
             });
             setView("List");
           }}
@@ -1994,6 +1999,12 @@ export default function Workbench({
             </div>
           )}
         </section>
+      )}
+      {view === "Review" && (
+        <PriorityMap
+          items={filtered}
+          onOpen={(w) => open(w, "Prioritize pilot")}
+        />
       )}
       {view === "Review" && (
         <section className="wb-panel">

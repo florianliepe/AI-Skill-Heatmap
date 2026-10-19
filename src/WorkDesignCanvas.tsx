@@ -6,6 +6,7 @@ import {
   PackageCheck,
 } from "lucide-react";
 import { emptyDesign, type WorkDesign } from "./sprint-model";
+import TaskDecomposition from "./TaskDecomposition";
 export default function WorkDesignCanvas({
   value,
   onChange,
@@ -90,6 +91,10 @@ export default function WorkDesignCanvas({
           </label>
         ))}
       </div>
+      <TaskDecomposition
+        tasks={d.tasks || []}
+        onChange={(tasks) => onChange({ ...d, tasks })}
+      />
     </section>
   );
 }
