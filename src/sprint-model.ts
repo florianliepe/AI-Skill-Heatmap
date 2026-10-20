@@ -35,6 +35,7 @@ export const taskModes = [
   "Bounded agent",
 ] as const;
 export type DesignTask = {
+  cardIds?: string[];
   id: string;
   title: string;
   input: string;
@@ -46,6 +47,7 @@ export type DesignTask = {
   cardReference: string;
 };
 export const newTask = (): DesignTask => ({
+  cardIds: [],
   id: crypto.randomUUID(),
   title: "",
   input: "",

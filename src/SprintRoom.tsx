@@ -17,6 +17,7 @@ import {
 import { protectNavigation, confirmDiscard } from "./navigation";
 import * as api from "./api";
 import MethodGuide from "./MethodGuide";
+import MethodLibrary from "./MethodLibrary";
 
 const modules = [
   {
@@ -260,14 +261,21 @@ export default function SprintRoom({
         </div>
         <div className="sprint-method">
           <BookOpen />
-          <strong>Working method · v3</strong>
+          <strong>Working method · v4</strong>
           <p>
-            Mapping, task design and pilot prioritization. Six provisional
-            capability families; new AI cards pending review.
+            Mapping, task design and pilot prioritization, supported by a
+            private library of verified method extracts.
           </p>
         </div>
       </section>
       <MethodGuide />
+      <MethodLibrary
+        readOnly={demo}
+        cards={snapshot.data.methodCards || []}
+        items={snapshot.data.workItems || []}
+        snapshot={snapshot}
+        onSnapshot={onSnapshot}
+      />
       <div className="sprint-module-tabs" aria-label="Sprint modules">
         {modules.map((m, i) => (
           <button

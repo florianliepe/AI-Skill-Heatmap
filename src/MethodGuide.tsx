@@ -3,12 +3,12 @@ export default function MethodGuide() {
     [
       "Map the problem",
       "Discover → Landscape",
-      "Name the process step, affected user and observable pain. Capture evidence and a baseline question. Map opportunities to capabilities; keep alternative approaches open.",
+      "Validate the current process or business area. Mark pain and core value, then explore capabilities. Separate shared solutions from output dependencies and describe the cost of waiting.",
     ],
     [
       "Decompose the work",
       "Design → Task decomposition",
-      "List tasks in order with inputs and outputs. Assign human judgment, deterministic automation or bounded AI. Specify an accountable role, acceptance check and fallback for every handover.",
+      "Choose two focal process steps. Start from the desired output, then define inputs, transformation, review and handover. Revisit neighboring steps, human roles, exceptions and ethical failure scenarios.",
     ],
     [
       "Test the value story",
@@ -18,7 +18,7 @@ export default function MethodGuide() {
     [
       "Prioritize a pilot",
       "Prioritize pilot → Review",
-      "Assess business impact and feasibility separately. Keep unknowns outside the matrix. Challenge data access, integration, evaluation and risks. Record a decision and test the riskiest assumption.",
+      "Compare benefit and cost, then assess feasibility. Choose a small pilot, shared solution cluster or north star. Workshop votes guide discussion; they are not ROI or approval. Keep unknowns visible.",
     ],
   ];
   return (
@@ -40,14 +40,13 @@ export default function MethodGuide() {
         <p>
           The opportunity-to-use-case-to-prioritization sequence has been
           checked against the supplied sprint board. Task decomposition and
-          feasibility scoring are Studio extensions, not a transcription of the
-          training deck.
+          feasibility scoring are Studio extensions. Source wording is retained
+          separately in the authenticated method library.
         </p>
         <p>
-          The six capability prompts below remain provisional. The new AI card
-          deck is awaiting upload and review; no new card content has been
-          imported. Task-level card references can capture a title/version once
-          the source is available.
+          The six capability prompts below remain provisional. Verified method
+          extracts can be linked to tasks and cases. Embedded capability-card
+          wording has not been transcribed; no completeness claim is made for that deck.
         </p>
       </details>
     </section>

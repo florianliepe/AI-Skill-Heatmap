@@ -21,7 +21,7 @@ describe("Sprint sessions and work design", () => {
     const s = state();
     const r = applyMutation(s, { action: "read" }).response;
     expect(r.data.sprintSessions).toEqual([]);
-    expect(r.data.schemaVersion).toBe(3);
+    expect(r.data.schemaVersion).toBe(4);
     expect(r.data.objectives).toEqual(s.data.objectives);
     expect(s.data).not.toHaveProperty("sprintSessions");
   });

@@ -48,6 +48,21 @@ export async function login(password: string) {
   }
 }
 export const refresh = () => request({ action: "read" });
+export const saveMethodCard = (
+  record: import("./method-model").MethodCard,
+  revision: number,
+  create: boolean,
+  requestId: string,
+) =>
+  request({
+    action: create ? "create" : "update",
+    collection: "methodCards",
+    record,
+    revision,
+    requestId,
+  });
+export const removeMethodCard = (id: string, revision: number) =>
+  request({ action: "delete", collection: "methodCards", id, revision });
 export async function challenge(
   caseId: string,
   revision: number,

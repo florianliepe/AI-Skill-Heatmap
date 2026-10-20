@@ -54,6 +54,10 @@ import DeliveryReadiness from "./DeliveryReadiness";
 import ChallengerPanel from "./ChallengerPanel";
 import PriorityMap, { FeasibilityEditor } from "./PriorityMap";
 import "./sprint.css";
+import "./method.css";
+import MappingCanvas from "./MappingCanvas";
+import BenefitMap from "./BenefitMap";
+import { CardPicker } from "./MethodLibrary";
 const tabs = [
   "Discover",
   "Design",
@@ -200,6 +204,7 @@ export default function Workbench({
     (snapshot.data.workItems || []).length ? "Landscape" : "Sprint room",
   );
   const [search, setSearch] = useState("");
+  const [portfolioLens, setPortfolioLens] = useState("Benefit / cost");
   const [process, setProcess] = useState("All processes");
   const [session, setSession] = useState("All sessions");
   const [kind, setKind] = useState("All items");
@@ -680,6 +685,17 @@ export default function Workbench({
           <section className="wb-panel">
             {section === "Discover" && (
               <>
+                <MappingCanvas
+                  value={draft.mapping}
+                  items={all}
+                  id={draft.id}
+                  onChange={(v) => put("mapping", v)}
+                />
+                <CardPicker
+                  cards={data.methodCards || []}
+                  selected={draft.cardIds || []}
+                  onChange={(v) => put("cardIds", v)}
+                />
                 <div className="wb-section-title">
                   <Lightbulb />
                   <div>
@@ -794,6 +810,7 @@ export default function Workbench({
             {section === "Design" && (
               <>
                 <WorkDesignCanvas
+                  cards={data.methodCards || []}
                   value={draft.workDesign}
                   onChange={(v) => put("workDesign", v)}
                 />
@@ -2001,6 +2018,23 @@ export default function Workbench({
         </section>
       )}
       {view === "Review" && (
+        <div className="sprint-module-tabs" aria-label="Portfolio comparison">
+          {["Benefit / cost", "Impact / feasibility"].map((lens) => (
+            <button
+              key={lens}
+              aria-pressed={portfolioLens === lens}
+              className={portfolioLens === lens ? "active" : ""}
+              onClick={() => setPortfolioLens(lens)}
+            >
+              {lens}
+            </button>
+          ))}
+        </div>
+      )}
+      {view === "Review" && portfolioLens === "Benefit / cost" && (
+        <BenefitMap items={filtered} onOpen={(w) => open(w, "Discover")} />
+      )}
+      {view === "Review" && portfolioLens === "Impact / feasibility" && (
         <PriorityMap
           items={filtered}
           onOpen={(w) => open(w, "Prioritize pilot")}

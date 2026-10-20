@@ -33,6 +33,8 @@ export type Economics = {
   setup: number | null;
 };
 export type WorkItem = {
+  cardIds?: string[];
+  mapping?: import("./method-model").Mapping;
   feasibility?: { score: number | null; rationale: string; risks: string };
   sessionId?: string;
   workDesign?: import("./sprint-model").WorkDesign;
@@ -281,6 +283,18 @@ export function sampleItems(): WorkItem[] {
     owner: "Example owner",
   }));
   Object.assign(items[0], {
+    mapping: {
+      strategy: "Start small",
+      pain: "Illustrative: repeated clarification delays the development handover.",
+      sharedSolution: "Example knowledge intake",
+      costOfDelay: "Illustrative: clarification work continues; no financial loss quantified.",
+      dataReadiness: "Illustrative: approved standards are available; source ownership must be verified.",
+      humanValue: "Illustrative: less rewriting, with explicit time for review.",
+      businessViability: "Illustrative: test whether released capacity can be redeployed.",
+      costRationale: "Illustrative: limited integration scope, evaluation effort still required.",
+      implementationCost: 2,
+      dependencies: [],
+    },
     feasibility: {
       score: 3,
       rationale:

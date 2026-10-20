@@ -7,11 +7,14 @@ import {
 } from "lucide-react";
 import { emptyDesign, type WorkDesign } from "./sprint-model";
 import TaskDecomposition from "./TaskDecomposition";
+import type { MethodCard } from "./method-model";
 export default function WorkDesignCanvas({
   value,
   onChange,
+  cards = [],
 }: {
   value?: WorkDesign;
+  cards?: MethodCard[];
   onChange: (v: WorkDesign) => void;
 }) {
   const d = { ...emptyDesign(), ...value };
@@ -92,6 +95,7 @@ export default function WorkDesignCanvas({
         ))}
       </div>
       <TaskDecomposition
+        cards={cards}
         tasks={d.tasks || []}
         onChange={(tasks) => onChange({ ...d, tasks })}
       />

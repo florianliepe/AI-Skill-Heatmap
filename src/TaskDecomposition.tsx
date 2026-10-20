@@ -1,11 +1,15 @@
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { newTask, taskGaps, taskModes, type DesignTask } from "./sprint-model";
+import { CardPicker } from "./MethodLibrary";
+import type { MethodCard } from "./method-model";
 
 export default function TaskDecomposition({
   tasks,
   onChange,
+  cards = [],
 }: {
   tasks: DesignTask[];
+  cards?: MethodCard[];
   onChange: (tasks: DesignTask[]) => void;
 }) {
   const update = (id: string, key: keyof DesignTask, value: string) =>
@@ -30,6 +34,8 @@ export default function TaskDecomposition({
         </button>
       </div>
       <p>
+        Choose up to two focal process steps. Start with the desired output,
+        then work backward through input, transformation, review and handover.
         Break the use case into an ordered sequence. Choose human work,
         deterministic automation or AI for each task. Describe branches in the
         exception field; this plan does not execute a workflow.
@@ -75,6 +81,17 @@ export default function TaskDecomposition({
               </span>
             </summary>
             <div className="task-toolbar">
+              <CardPicker
+                cards={cards}
+                selected={t.cardIds || []}
+                onChange={(ids) =>
+                  onChange(
+                    tasks.map((task) =>
+                      task.id === t.id ? { ...task, cardIds: ids } : task,
+                    ),
+                  )
+                }
+              />
               <button
                 disabled={i === 0}
                 aria-label={`Move task ${i + 1} up`}

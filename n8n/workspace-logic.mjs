@@ -4,7 +4,8 @@ export function applyMutation(snapshot, request) {
   const revision = snapshot.revision;
   const data = {
     ...snapshot.data,
-    schemaVersion: 3,
+    schemaVersion: 4,
+    methodCards: snapshot.data.methodCards || [],
     workItems: snapshot.data.workItems || [],
     sprintSessions: snapshot.data.sprintSessions || [],
   };
@@ -37,6 +38,7 @@ export function applyMutation(snapshot, request) {
       "Someone else updated this workspace. Refresh to load their changes, then try again.",
     );
   const specs = {
+    methodCards: ["title", "category", "body", "sourceUrl", "version"],
     sprintSessions: [
       "title",
       "problem",
@@ -112,6 +114,52 @@ export function applyMutation(snapshot, request) {
     record = { id };
     if (c === "workItems") {
       const raw = request.record;
+      const validCardIds = (ids) =>
+        Array.isArray(ids) &&
+        ids.length <= 100 &&
+        new Set(ids).size === ids.length &&
+        ids.every((id) => data.methodCards.some((card) => card.id === id));
+      record.cardIds = raw.cardIds ?? [];
+      if (!validCardIds(record.cardIds))
+        return fail("Select existing method cards.");
+      const mapping = raw.mapping ?? {};
+      record.mapping = {};
+      for (const key of [
+        "strategy",
+        "pain",
+        "sharedSolution",
+        "costOfDelay",
+        "dataReadiness",
+        "humanValue",
+        "businessViability",
+        "costRationale",
+      ]) {
+        const value = mapping[key] ?? "";
+        if (typeof value !== "string" || value.length > 12000)
+          return fail("Invalid mapping field: " + key);
+        record.mapping[key] = value;
+      }
+      if (
+        !["", "Start small", "Shared solution cluster", "North star"].includes(
+          record.mapping.strategy,
+        )
+      )
+        return fail("Choose a valid selection strategy.");
+      const cost = mapping.implementationCost ?? null;
+      if (cost !== null && (!Number.isInteger(cost) || cost < 1 || cost > 5))
+        return fail("Implementation cost must be unassessed or 1–5.");
+      record.mapping.implementationCost = cost;
+      const dependencies = mapping.dependencies ?? [];
+      if (
+        !Array.isArray(dependencies) ||
+        dependencies.length > 100 ||
+        new Set(dependencies).size !== dependencies.length ||
+        dependencies.some(
+          (dep) => dep === id || !data.workItems.some((w) => w.id === dep),
+        )
+      )
+        return fail("Choose distinct existing upstream use cases.");
+      record.mapping.dependencies = dependencies;
       record.sessionId = raw.sessionId || "";
       if (
         typeof record.sessionId !== "string" ||
@@ -145,6 +193,9 @@ export function applyMutation(snapshot, request) {
         )
           return fail("Choose a valid task execution mode.");
         const clean = { id: task.id, mode: task.mode };
+        clean.cardIds = task.cardIds ?? [];
+        if (!validCardIds(clean.cardIds))
+          return fail("Select existing task method cards.");
         for (const key of [
           "title",
           "input",
@@ -518,6 +569,21 @@ export function applyMutation(snapshot, request) {
       (record.label !== undefined && c === "nodes" && !record.label.trim())
     )
       return fail("Enter a name or title.");
+    if (c === "methodCards") {
+      // n8n's sandbox does not expose the URL constructor.
+      if (
+        !/^https:\/\/[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?(?::[0-9]{1,5})?(?:[/?#][^\s\\]*)?$/i.test(
+          record.sourceUrl,
+        )
+      )
+        return fail("Use a valid HTTPS source reference.");
+      if (
+        !record.body.trim() ||
+        !record.category.trim() ||
+        !record.version.trim()
+      )
+        return fail("A method card needs wording, stage and version.");
+    }
     if (c === "sprintSessions") {
       if (
         !record.problem.trim() ||
@@ -599,6 +665,23 @@ export function applyMutation(snapshot, request) {
     if (request.action === "create") next[c].push(record);
     else next[c][at] = record;
   } else {
+    if (
+      (c === "methodCards" &&
+        data.workItems.some(
+          (w) =>
+            (w.cardIds || []).includes(id) ||
+            (w.workDesign?.tasks || []).some((t) =>
+              (t.cardIds || []).includes(id),
+            ),
+        )) ||
+      (c === "workItems" &&
+        data.workItems.some((w) =>
+          (w.mapping?.dependencies || []).includes(id),
+        ))
+    )
+      return fail(
+        "This record is linked to method or mapping records. Remove those links first.",
+      );
     if (
       [
         "objectives",
