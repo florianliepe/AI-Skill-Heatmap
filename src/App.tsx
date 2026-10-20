@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import Workbench from "./Workbench";
+import CardLibrary from "./CardLibrary";
 import { requestNavigation } from "./navigation";
 import {
   ArrowDownToLine,
@@ -50,6 +51,7 @@ import type {
 import Editor, { newRecord } from "./Editor";
 import TargetCanvas from "./TargetCanvas";
 type Page =
+  | "AI card library"
   | "Workbench"
   | "Overview"
   | "Vision & OKRs"
@@ -61,6 +63,7 @@ type Page =
 const navigation = [
   { name: "Overview", icon: LayoutDashboard },
   { name: "Workbench", icon: Lightbulb },
+  { name: "AI card library", icon: Layers },
   { name: "Vision & OKRs", icon: Target },
   { name: "Target picture", icon: Network },
   { name: "Skill catalog", icon: Layers },
@@ -374,6 +377,12 @@ export default function App() {
     Page,
     { kicker: string; title: string; description: string }
   > = {
+    "AI card library": {
+      kicker: "DESIGN METHODS & CAPABILITIES",
+      title: "From card to application.",
+      description:
+        "Explore both sides, review source coverage and plan where each capability can help.",
+    },
     Workbench: {
       kicker: "AI DESIGN WORKBENCH",
       title: "Make opportunity actionable.",
@@ -814,6 +823,14 @@ export default function App() {
                 </button>
               </div>
             </>
+          )}
+          {page === "AI card library" && (
+            <CardLibrary
+              cards={data.methodCards || []}
+              items={data.workItems || []}
+              snapshot={snapshot}
+              onSnapshot={setSnapshot}
+            />
           )}
           {page === "Workbench" && (
             <Workbench snapshot={snapshot} onSnapshot={setSnapshot} />

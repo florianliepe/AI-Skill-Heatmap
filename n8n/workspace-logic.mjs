@@ -570,6 +570,63 @@ export function applyMutation(snapshot, request) {
     )
       return fail("Enter a name or title.");
     if (c === "methodCards") {
+      record.kind = request.record.kind ?? "method";
+      if (!["method", "ai-card"].includes(record.kind))
+        return fail("Choose a valid card kind.");
+      for (const key of [
+        "backText",
+        "backSourceUrl",
+        "explanation",
+        "tags",
+        "backlogOwner",
+        "nextAction",
+        "dueDate",
+        "applicationNotes",
+      ]) {
+        const value = request.record[key] ?? "";
+        if (typeof value !== "string" || value.length > 12000)
+          return fail("Invalid card field: " + key);
+        record[key] = value;
+      }
+      record.reviewStatus = request.record.reviewStatus ?? "unreviewed";
+      if (!["unreviewed", "reviewed"].includes(record.reviewStatus))
+        return fail("Choose a valid review status.");
+      if (
+        record.kind === "ai-card" &&
+        record.reviewStatus === "reviewed" &&
+        (!record.body.trim() ||
+          !record.backText.trim() ||
+          !record.explanation.trim() ||
+          !record.backSourceUrl.trim())
+      )
+        return fail(
+          "Review requires both sides, their source references and an explanation.",
+        );
+      if (
+        record.backSourceUrl &&
+        !/^https:\/\/[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?(?::[0-9]{1,5})?(?:[/?#][^\s\\]*)?$/i.test(
+          record.backSourceUrl,
+        )
+      )
+        return fail("Use an HTTPS reference for the reverse side.");
+      if (
+        record.dueDate &&
+        (!/^\d{4}-\d{2}-\d{2}$/.test(record.dueDate) ||
+          Number.isNaN(Date.parse(record.dueDate)) ||
+          new Date(record.dueDate).toISOString().slice(0, 10) !==
+            record.dueDate)
+      )
+        return fail("Use a valid backlog due date.");
+      record.applicationIds = request.record.applicationIds ?? [];
+      if (
+        !Array.isArray(record.applicationIds) ||
+        record.applicationIds.length > 100 ||
+        new Set(record.applicationIds).size !== record.applicationIds.length ||
+        record.applicationIds.some(
+          (id) => !data.workItems.some((w) => w.id === id),
+        )
+      )
+        return fail("Choose existing use cases for planned applications.");
       // n8n's sandbox does not expose the URL constructor.
       if (
         !/^https:\/\/[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?(?::[0-9]{1,5})?(?:[/?#][^\s\\]*)?$/i.test(
@@ -578,7 +635,7 @@ export function applyMutation(snapshot, request) {
       )
         return fail("Use a valid HTTPS source reference.");
       if (
-        !record.body.trim() ||
+        (record.kind === "method" && !record.body.trim()) ||
         !record.category.trim() ||
         !record.version.trim()
       )
@@ -665,6 +722,13 @@ export function applyMutation(snapshot, request) {
     if (request.action === "create") next[c].push(record);
     else next[c][at] = record;
   } else {
+    if (
+      c === "workItems" &&
+      data.methodCards.some((card) => (card.applicationIds || []).includes(id))
+    )
+      return fail(
+        "This use case is linked to a card application. Remove that link first.",
+      );
     if (
       (c === "methodCards" &&
         data.workItems.some(
