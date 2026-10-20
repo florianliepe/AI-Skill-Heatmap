@@ -1,12 +1,9 @@
 import { useEffect, useState } from "react";
 import type { Snapshot } from "./types";
 import type { WorkItem } from "./workbench-model";
-import {
-  cardCoverage,
-  cardSearchText,
-  safeSource,
-  type MethodCard,
-} from "./method-model";
+import { cardCoverage, cardSearchText, type MethodCard } from "./method-model";
+import CardDeckBrowser from "./CardDeckBrowser";
+import { saveWorkItem } from "./api";
 import { saveMethodCard } from "./api";
 import { confirmDiscard, protectNavigation } from "./navigation";
 
@@ -23,6 +20,9 @@ export default function CardLibrary({
   onSnapshot: (s: Snapshot) => void;
   readOnly?: boolean;
 }) {
+  const [target, setTarget] = useState("");
+  const [linkError, setLinkError] = useState("");
+  const [linkBusy, setLinkBusy] = useState(false);
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState("ai-card");
   const [category, setCategory] = useState("");
@@ -78,14 +78,6 @@ export default function CardLibrary({
         : {}),
     });
   }
-  const link = (url: string | undefined, label: string) =>
-    url && safeSource(url) ? (
-      <a href={url} target="_blank" rel="noreferrer">
-        {label} ↗
-      </a>
-    ) : (
-      <small>Source not recorded</small>
-    );
   return (
     <section className="wb-panel method-library">
       <span className="eyebrow">PRIVATE CARD WORKBENCH</span>
@@ -421,74 +413,94 @@ export default function CardLibrary({
         </form>
       )}
       {view === "Library" ? (
-        <div className="method-card-grid">
-          {filtered.slice(0, limit).map((c) => (
-            <details className="method-card" key={c.id}>
-              <summary>
-                <span className="eyebrow">{c.category}</span>
-                <strong>{c.title}</strong>
-                <span className="card-coverage-badge">{cardCoverage(c)}</span>
-              </summary>
-              <small>
-                {c.version} · {c.tags}
-              </small>
-              <div className="card-source-side">
-                <h4>
-                  {c.kind === "ai-card"
-                    ? "Side 1 · source wording"
-                    : "Method extract · source wording"}
-                </h4>
-                <p>{c.body || "Front content missing"}</p>
-                {link(c.sourceUrl, "View front / extract")}
-              </div>
-              {c.kind === "ai-card" && (
-                <div className="card-source-side">
-                  <h4>Side 2 · source wording</h4>
-                  <p>
-                    {c.backText ||
-                      "Reverse content missing — not inferred from the front."}
-                  </p>
-                  {link(c.backSourceUrl, "View reverse")}
-                </div>
-              )}
-              <div className="card-explanation">
-                <h4>Studio explanation</h4>
-                <p>{c.explanation || "No explanation recorded yet."}</p>
-                <small>Interpretation, separate from original wording</small>
-              </div>
-              <p>
-                <strong>Planned application</strong>
-                <br />
-                {c.applicationNotes || "None recorded"}
-              </p>
-              {(c.applicationIds || []).map((id) => (
-                <p key={id}>
-                  {items.find((w) => w.id === id)?.title || "Unavailable case"}
-                </p>
-              ))}
-              <button disabled={readOnly || !!draft} onClick={() => edit(c)}>
-                Edit / plan next action
-              </button>
-              {items
-                .filter(
-                  (w) =>
-                    w.cardIds?.includes(c.id) ||
-                    w.workDesign?.tasks?.some((t) => t.cardIds?.includes(c.id)),
-                )
-                .map((w) => (
-                  <button
-                    key={w.id}
-                    disabled={!!draft}
-                    onClick={() => {
-                      location.hash = `#/workbench/${w.id}/Design`;
-                    }}
-                  >
-                    {w.title} · linked design →
-                  </button>
+        <>
+          <div className="deck-target-bar">
+            <label className="wb-field">
+              Link cards to a task or use case
+              <select
+                aria-label="Card selection target"
+                value={target}
+                disabled={linkBusy}
+                onChange={(e) => {
+                  setTarget(e.target.value);
+                  setLinkError("");
+                }}
+              >
+                <option value="">
+                  Browse only · choose a target to select cards
+                </option>
+                {items.map((w) => (
+                  <optgroup key={w.id} label={w.title}>
+                    {(w.workDesign?.tasks || []).map((t) => (
+                      <option key={t.id} value={JSON.stringify([w.id, t.id])}>
+                        Task · {t.title || "Untitled task"}
+                      </option>
+                    ))}
+                    <option value={JSON.stringify([w.id, ""])}>
+                      Whole use case · {w.title}
+                    </option>
+                  </optgroup>
                 ))}
-            </details>
-          ))}
-        </div>
+              </select>
+            </label>
+            {!items.length && (
+              <p>
+                Create a use case and process tasks in the workbench to start
+                linking cards.
+              </p>
+            )}
+            {linkBusy && <span role="status">Saving card links…</span>}
+            {linkError && <p role="alert">{linkError}</p>}
+          </div>
+          {(() => {
+            const [itemId, taskId] = target
+              ? (JSON.parse(target) as string[])
+              : [];
+            const item = items.find((w) => w.id === itemId);
+            const task = item?.workDesign?.tasks?.find((t) => t.id === taskId);
+            return (
+              <fieldset className="deck-selection-fieldset" disabled={linkBusy}>
+                <CardDeckBrowser
+                  cards={filtered}
+                  selected={(taskId ? task?.cardIds : item?.cardIds) || []}
+                  onEdit={!readOnly && !draft ? edit : undefined}
+                  onChange={
+                    item && (!taskId || task) && !readOnly
+                      ? async (ids) => {
+                          setLinkBusy(true);
+                          setLinkError("");
+                          try {
+                            const record = structuredClone(item);
+                            if (taskId && record.workDesign?.tasks)
+                              record.workDesign.tasks =
+                                record.workDesign.tasks.map((t) =>
+                                  t.id === taskId ? { ...t, cardIds: ids } : t,
+                                );
+                            else record.cardIds = ids;
+                            onSnapshot(
+                              await saveWorkItem(
+                                record,
+                                snapshot.revision,
+                                false,
+                                crypto.randomUUID(),
+                              ),
+                            );
+                          } catch (e) {
+                            setLinkError(
+                              (e as Error).message +
+                                " Links were not saved. Refresh before retrying a version conflict.",
+                            );
+                          } finally {
+                            setLinkBusy(false);
+                          }
+                        }
+                      : undefined
+                  }
+                />
+              </fieldset>
+            );
+          })()}
+        </>
       ) : (
         <div className="card-backlog-scroll">
           <table className="card-backlog">
@@ -550,7 +562,7 @@ export default function CardLibrary({
           No matching cards. Change the filters or add a source-linked card.
         </p>
       )}
-      {filtered.length > limit && (
+      {view === "Backlog" && filtered.length > limit && (
         <button onClick={() => setLimit(limit + 24)}>Show more cards</button>
       )}
     </section>

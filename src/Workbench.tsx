@@ -692,6 +692,7 @@ export default function Workbench({
                   onChange={(v) => put("mapping", v)}
                 />
                 <CardPicker
+                  deck="mapping"
                   cards={data.methodCards || []}
                   selected={draft.cardIds || []}
                   onChange={(v) => put("cardIds", v)}
