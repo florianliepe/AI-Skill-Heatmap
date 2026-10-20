@@ -107,7 +107,7 @@ export default function CardLibrary({
           <strong>
             {aiCards.filter((c) => c.body.trim() && c.backText?.trim()).length}
           </strong>
-          <span>Both sides available � review separately</span>
+          <span>Both sides available - review separately</span>
         </div>
         <div>
           <strong>{cards.length - aiCards.length}</strong>
