@@ -522,6 +522,7 @@ export default function CardLibrary({
             return (
               <fieldset className="deck-selection-fieldset" disabled={linkBusy}>
                 <CardDeckBrowser
+                  key={kind}
                   cards={filtered}
                   selected={(taskId ? task?.cardIds : item?.cardIds) || []}
                   onEdit={!readOnly && !draft ? edit : undefined}
