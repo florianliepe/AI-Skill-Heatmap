@@ -169,48 +169,119 @@ export function applyMutation(snapshot, request) {
         return fail("Select an existing sprint session.");
       const design = raw.workDesign || {};
       record.workDesign = {};
-      const tasks = design.tasks ?? [];
-      if (!Array.isArray(tasks) || tasks.length > 30)
-        return fail("Use up to 30 tasks per use case.");
-      const taskIds = new Set();
-      record.workDesign.tasks = [];
-      for (const task of tasks) {
-        if (
-          !task ||
-          typeof task.id !== "string" ||
-          !/^[\w-]{1,90}$/.test(task.id) ||
-          taskIds.has(task.id)
-        )
-          return fail("Every task needs a unique identifier.");
-        taskIds.add(task.id);
-        if (
-          ![
-            "Human",
-            "Rules / automation",
-            "AI assisted",
-            "Bounded agent",
-          ].includes(task.mode)
-        )
-          return fail("Choose a valid task execution mode.");
-        const clean = { id: task.id, mode: task.mode };
-        clean.cardIds = task.cardIds ?? [];
-        if (!validCardIds(clean.cardIds))
-          return fail("Select existing task method cards.");
-        for (const key of [
-          "title",
-          "input",
-          "output",
-          "owner",
-          "acceptance",
-          "exception",
-          "cardReference",
-        ]) {
-          const value = task[key] ?? "";
-          if (typeof value !== "string" || value.length > 4000)
-            return fail("Invalid task field: " + key);
-          clean[key] = value;
+      function cleanTasks(tasks) {
+        if (!Array.isArray(tasks) || tasks.length > 30)
+          throw new Error("Use up to 30 tasks per use case.");
+        const taskIds = new Set();
+        const cleaned = [];
+        for (const task of tasks) {
+          if (
+            !task ||
+            typeof task.id !== "string" ||
+            !/^[\w-]{1,90}$/.test(task.id) ||
+            taskIds.has(task.id)
+          )
+            throw new Error("Every task needs a unique identifier.");
+          taskIds.add(task.id);
+          if (
+            ![
+              "Human",
+              "Rules / automation",
+              "AI assisted",
+              "Bounded agent",
+            ].includes(task.mode)
+          )
+            throw new Error("Choose a valid task execution mode.");
+          const clean = { id: task.id, mode: task.mode };
+          clean.cardIds = task.cardIds ?? [];
+          if (!validCardIds(clean.cardIds))
+            throw new Error("Select existing task method cards.");
+          for (const key of [
+            "title",
+            "input",
+            "output",
+            "owner",
+            "acceptance",
+            "exception",
+            "cardReference",
+          ]) {
+            const value = task[key] ?? "";
+            if (typeof value !== "string" || value.length > 4000)
+              throw new Error("Invalid task field: " + key);
+            clean[key] = value;
+          }
+          for (const key of ["lane", "rationale"]) {
+            if (task[key] !== undefined) {
+              if (typeof task[key] !== "string" || task[key].length > 4000)
+                throw new Error("Invalid task " + key);
+              clean[key] = task[key];
+            }
+          }
+          if (task.redesign !== undefined) {
+            if (
+              ![
+                "Keep",
+                "Remove",
+                "Simplify",
+                "Combine",
+                "Reorder",
+                "Automate",
+                "Augment",
+                "Add",
+              ].includes(task.redesign)
+            )
+              throw new Error("Invalid redesign action.");
+            clean.redesign = task.redesign;
+          }
+          for (const key of [
+            "processing",
+            "waiting",
+            "rework",
+            "handoverQuality",
+          ]) {
+            if (task[key] !== undefined) {
+              const value = task[key];
+              if (
+                value !== null &&
+                (typeof value !== "number" ||
+                  !Number.isFinite(value) ||
+                  value < 0 ||
+                  value >
+                    (["rework", "handoverQuality"].includes(key) ? 100 : 1e7))
+              )
+                throw new Error("Invalid task metric: " + key);
+              clean[key] = value;
+            }
+          }
+          cleaned.push(clean);
         }
-        record.workDesign.tasks.push(clean);
+        return cleaned;
+      }
+      try {
+        record.workDesign.tasks = cleanTasks(design.tasks ?? []);
+        if (design.currentTasks !== undefined)
+          record.workDesign.currentTasks = cleanTasks(design.currentTasks);
+        if (design.variants !== undefined) {
+          if (!Array.isArray(design.variants) || design.variants.length > 3)
+            throw new Error("Use up to three process alternatives.");
+          const variantIds = new Set();
+          record.workDesign.variants = design.variants.map((v) => {
+            if (
+              !v ||
+              typeof v.id !== "string" ||
+              !/^[\w-]{1,90}$/.test(v.id) ||
+              variantIds.has(v.id) ||
+              typeof v.name !== "string" ||
+              !v.name.trim() ||
+              v.name.length > 200
+            )
+              throw new Error("Invalid process alternative.");
+            variantIds.add(v.id);
+            return { id: v.id, name: v.name, tasks: cleanTasks(v.tasks) };
+          });
+        }
+      } catch (e) {
+        return fail(e.message);
       }
       const feasibility = raw.feasibility ?? {};
       const score = feasibility.score ?? null;
@@ -368,6 +439,32 @@ export function applyMutation(snapshot, request) {
         )
           return fail("Invalid economic assumption: " + key);
         record.economics[key] = v;
+      }
+      if (raw.valueScenarios !== undefined) {
+        if (
+          !raw.valueScenarios ||
+          typeof raw.valueScenarios !== "object" ||
+          Array.isArray(raw.valueScenarios)
+        )
+          return fail("Invalid value scenarios.");
+        record.valueScenarios = {};
+        for (const scenario of ["low", "high"]) {
+          if (raw.valueScenarios[scenario] === undefined) continue;
+          const source = raw.valueScenarios[scenario];
+          const clean = {};
+          for (const key of econKeys) {
+            const v = source?.[key];
+            if (
+              !numeric(v) ||
+              (v !== null &&
+                (v < 0 ||
+                  (["adoption", "realization"].includes(key) && v > 100)))
+            )
+              return fail("Invalid " + scenario + " assumption: " + key);
+            clean[key] = v;
+          }
+          record.valueScenarios[scenario] = clean;
+        }
       }
       record.experiment = {};
       for (const key of [
@@ -734,9 +831,11 @@ export function applyMutation(snapshot, request) {
         data.workItems.some(
           (w) =>
             (w.cardIds || []).includes(id) ||
-            (w.workDesign?.tasks || []).some((t) =>
-              (t.cardIds || []).includes(id),
-            ),
+            [
+              ...(w.workDesign?.tasks || []),
+              ...(w.workDesign?.currentTasks || []),
+              ...(w.workDesign?.variants || []).flatMap((v) => v.tasks || []),
+            ].some((t) => (t.cardIds || []).includes(id)),
         )) ||
       (c === "workItems" &&
         data.workItems.some((w) =>

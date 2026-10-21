@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { MethodCard } from "./method-model";
 import { cardSearchText } from "./method-model";
 import CardDeckBrowser from "./CardDeckBrowser";
-import type { CardDeck } from "./card-decks";
+import { cardCategory, type CardDeck } from "./card-decks";
 
 export function CardPicker({
   cards,
@@ -19,6 +19,29 @@ export function CardPicker({
   const [open, setOpen] = useState(false);
   return (
     <section className="method-picker">
+      {!!selected.length && (
+        <div className="selected-card-tray" aria-label="Linked cards">
+          {selected.map((id) => {
+            const c = cards.find((c) => c.id === id);
+            return (
+              <span
+                key={id}
+                style={{ borderLeftColor: c ? cardCategory(c).color : "#999" }}
+              >
+                {c?.title || "Unavailable card"}
+                <button
+                  type="button"
+                  aria-label={`Unlink ${c?.title || id}`}
+                  onClick={() => onChange(selected.filter((x) => x !== id))}
+                >
+                  ×
+                </button>
+              </span>
+            );
+          })}
+        </div>
+      )}
+
       <button type="button" aria-expanded={open} onClick={() => setOpen(!open)}>
         Choose AI cards · {selected.length} selected
       </button>

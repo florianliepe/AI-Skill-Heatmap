@@ -33,6 +33,7 @@ export type Economics = {
   setup: number | null;
 };
 export type WorkItem = {
+  valueScenarios?: { low?: Economics; high?: Economics };
   cardIds?: string[];
   mapping?: import("./method-model").Mapping;
   feasibility?: { score: number | null; rationale: string; risks: string };
@@ -287,11 +288,16 @@ export function sampleItems(): WorkItem[] {
       strategy: "Start small",
       pain: "Illustrative: repeated clarification delays the development handover.",
       sharedSolution: "Example knowledge intake",
-      costOfDelay: "Illustrative: clarification work continues; no financial loss quantified.",
-      dataReadiness: "Illustrative: approved standards are available; source ownership must be verified.",
-      humanValue: "Illustrative: less rewriting, with explicit time for review.",
-      businessViability: "Illustrative: test whether released capacity can be redeployed.",
-      costRationale: "Illustrative: limited integration scope, evaluation effort still required.",
+      costOfDelay:
+        "Illustrative: clarification work continues; no financial loss quantified.",
+      dataReadiness:
+        "Illustrative: approved standards are available; source ownership must be verified.",
+      humanValue:
+        "Illustrative: less rewriting, with explicit time for review.",
+      businessViability:
+        "Illustrative: test whether released capacity can be redeployed.",
+      costRationale:
+        "Illustrative: limited integration scope, evaluation effort still required.",
       implementationCost: 2,
       dependencies: [],
     },
@@ -402,5 +408,42 @@ export function sampleItems(): WorkItem[] {
       },
     ],
   });
+  // Fictional walkthrough data; never seeded into the authenticated workspace.
+  const demoDesign = items[0].workDesign!;
+  demoDesign.tasks = demoDesign.tasks!.map((t, i) => ({
+    ...t,
+    lane: ["Business Partner", "Value Stream", "Developers"][i],
+    processing: [30, 20, 30][i],
+    waiting: [120, 60, 120][i],
+    rework: [5, 10, 5][i],
+    handoverQuality: [95, 90, 95][i],
+    redesign: i === 1 ? "Augment" : "Simplify",
+    rationale: "Illustrative assumptions; validate with process owners.",
+  }));
+  demoDesign.currentTasks = demoDesign.tasks.map((t, i) => ({
+    ...t,
+    mode: "Human",
+    redesign: "Keep",
+    processing: [30, 60, 30][i],
+    waiting: [240, 480, 120][i],
+    rework: [10, 25, 20][i],
+    handoverQuality: [90, 75, 80][i],
+  }));
+  demoDesign.variants = [
+    {
+      id: "example-standardize",
+      name: "Standardise without AI",
+      tasks: demoDesign.currentTasks.map((t, i) => ({
+        ...t,
+        redesign: "Simplify",
+        processing: [25, 45, 30][i],
+        waiting: [180, 240, 120][i],
+      })),
+    },
+  ];
+  items[0].valueScenarios = {
+    low: { ...items[0].economics, adoption: 40, assisted: 70, review: 25 },
+    high: { ...items[0].economics, adoption: 90, assisted: 45, review: 15 },
+  };
   return items;
 }

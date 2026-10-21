@@ -45,11 +45,13 @@ import {
   sampleItems,
   readiness,
   type WorkItem,
-  type Economics,
 } from "./workbench-model";
 import "./workbench.css";
 import SprintRoom from "./SprintRoom";
 import WorkDesignCanvas from "./WorkDesignCanvas";
+import ValueScenarios from "./ValueScenarios";
+import CaseComparison from "./CaseComparison";
+import "./redesign.css";
 import DeliveryReadiness from "./DeliveryReadiness";
 import ChallengerPanel from "./ChallengerPanel";
 import PriorityMap, { FeasibilityEditor } from "./PriorityMap";
@@ -204,6 +206,7 @@ export default function Workbench({
     (snapshot.data.workItems || []).length ? "Landscape" : "Sprint room",
   );
   const [search, setSearch] = useState("");
+  const [comparisonFocus, setComparisonFocus] = useState("");
   const [portfolioLens, setPortfolioLens] = useState("Benefit / cost");
   const [process, setProcess] = useState("All processes");
   const [session, setSession] = useState("All sessions");
@@ -468,7 +471,6 @@ export default function Workbench({
     ]),
   ];
   const stats = cellSummary(all);
-  const selected = all.filter((w) => selection.includes(w.id));
   const contributing = cell
     ? filtered.filter(
         (w) =>
@@ -609,9 +611,11 @@ export default function Workbench({
           <span role="status" className={dirty ? "wb-unsaved" : "wb-saved"}>
             {saving
               ? "Saving…"
-              : dirty
-                ? "Unsaved changes"
-                : message || "Saved"}
+              : conflict
+                ? "Conflict · draft retained"
+                : dirty
+                  ? "Unsaved changes"
+                  : message || "Saved"}
           </span>
           <button onClick={() => exportBrief(draft, data)}>
             <Download size={15} />
@@ -975,7 +979,7 @@ export default function Workbench({
                   <div>
                     <h3>Make the assumptions visible</h3>
                     <p>
-                      Annual base scenario · EUR · estimates, not measured
+                      Annual scenarios · EUR · estimates, not measured
                       benefits.
                     </p>
                   </div>
@@ -993,82 +997,13 @@ export default function Workbench({
                   ])}
                   onChange={(v) => put("valueIntent", v)}
                 />
-                <div className="wb-value-grid">
-                  <div>
-                    <small>Released capacity</small>
-                    <strong>
-                      {number(v.hours)} <em>h / year</em>
-                    </strong>
-                  </div>
-                  <div>
-                    <small>Cashable labor benefit</small>
-                    <strong>{money(v.cash)}</strong>
-                  </div>
-                  <div>
-                    <small>Net recurring cash</small>
-                    <strong>{money(v.net)}</strong>
-                  </div>
-                </div>
-                {!["Capacity", "Cash"].includes(draft.valueIntent) && (
-                  <p className="wb-help">
-                    Use the experiment measure to track{" "}
-                    {draft.valueIntent.toLowerCase()}. Financial assumptions
-                    below are optional; do not invent a cash value.
-                  </p>
-                )}
-                <div className="wb-form-grid">
-                  {(
-                    [
-                      ["volume", "Eligible cases / year"],
-                      ["adoption", "Expected adoption (%)"],
-                      ["baseline", "Baseline handling (min / case)"],
-                      ["assisted", "Assisted handling (min / case)"],
-                      [
-                        "review",
-                        "Incremental review / exceptions (min / case)",
-                      ],
-                      ["rate", "Loaded rate (EUR / hour)"],
-                      ["realization", "Evidenced cash realization (%)"],
-                      ["recurring", "Recurring cost (EUR / year)"],
-                      ["setup", "Implementation cost (EUR)"],
-                    ] as [keyof Economics, string][]
-                  ).map(([k, l]) => (
-                    <Field
-                      key={k}
-                      type="number"
-                      label={l}
-                      value={draft.economics[k]}
-                      onChange={(x) =>
-                        put("economics", {
-                          ...draft.economics,
-                          [k]: x === "" ? null : Number(x),
-                        })
-                      }
-                      placeholder="Unknown"
-                    />
-                  ))}
-                </div>
-                <div className="wb-calculation">
-                  <p>
-                    Capacity valuation <strong>{money(v.capacity)}</strong> ·
-                    shown separately, never added to cash benefits.
-                  </p>
-                  <p>
-                    First-year net cash <strong>{money(v.firstYear)}</strong> ·
-                    steady-state payback{" "}
-                    <strong>
-                      {v.payback === null
-                        ? "Not established"
-                        : number(v.payback) + " years"}
-                    </strong>
-                    .
-                  </p>
-                  <small>
-                    Released hours = cases × adoption × (baseline − assisted −
-                    review) / 60. Full-year assumptions; no adoption ramp.
-                    Negative results remain visible.
-                  </small>
-                </div>
+                <ValueScenarios
+                  item={draft}
+                  onChange={(next) => {
+                    setDraft(next);
+                    setMessage("");
+                  }}
+                />
                 <Field
                   label="Shared benefit / overlap group"
                   value={draft.overlap}
@@ -2033,63 +1968,23 @@ export default function Workbench({
         </div>
       )}
       {view === "Review" && portfolioLens === "Benefit / cost" && (
-        <BenefitMap items={filtered} onOpen={(w) => open(w, "Discover")} />
+        <BenefitMap items={filtered} onOpen={(w) => setComparisonFocus(w.id)} />
       )}
       {view === "Review" && portfolioLens === "Impact / feasibility" && (
         <PriorityMap
           items={filtered}
-          onOpen={(w) => open(w, "Prioritize pilot")}
+          onOpen={(w) => setComparisonFocus(w.id)}
         />
       )}
       {view === "Review" && (
-        <section className="wb-panel">
-          <h3>Compare the next decisions</h3>
-          <p className="wb-help">
-            Choose up to three records in List. Benefits are not summed;
-            overlapping value and different intents need separate judgment.
-          </p>
-          <div className="wb-review-grid">
-            {selected.map((w) => {
-              const v = valueModel(w.economics);
-              return (
-                <article key={w.id}>
-                  <span className="wb-badge">{w.stage}</span>
-                  <h3>{w.title}</h3>
-                  <dl>
-                    <dt>Value intent</dt>
-                    <dd>{w.valueIntent}</dd>
-                    <dt>Impact / evidence</dt>
-                    <dd>
-                      {w.impact ?? "Unknown"} · {w.evidence}
-                    </dd>
-                    <dt>Released hours / year</dt>
-                    <dd>{number(v.hours)}</dd>
-                    <dt>Cash benefit / year</dt>
-                    <dd>{money(v.cash)}</dd>
-                    <dt>Implementation cost</dt>
-                    <dd>{money(w.economics.setup)}</dd>
-                    <dt>Overlap group</dt>
-                    <dd>{w.overlap || "Not assessed"}</dd>
-                    <dt>Pilot essentials missing</dt>
-                    <dd>{readiness(w).length}</dd>
-                    <dt>Next action</dt>
-                    <dd>{w.nextAction || "Not assigned"}</dd>
-                  </dl>
-                  <button onClick={() => open(w)}>
-                    Review case <ArrowUpRight size={15} />
-                  </button>
-                </article>
-              );
-            })}
-          </div>
-          {!selected.length && (
-            <div className="wb-empty">
-              <SlidersHorizontal />
-              <p>Select records in List to start a focused comparison.</p>
-              <button onClick={() => setView("List")}>Choose cases</button>
-            </div>
-          )}
-        </section>
+        <CaseComparison
+          items={filtered}
+          selection={selection}
+          onSelection={setSelection}
+          onOpen={open}
+          focus={comparisonFocus}
+          onFocus={setComparisonFocus}
+        />
       )}
       {view === "Enablement" && (
         <section className="wb-panel">

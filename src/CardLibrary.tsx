@@ -20,6 +20,8 @@ export default function CardLibrary({
   onSnapshot: (s: Snapshot) => void;
   readOnly?: boolean;
 }) {
+  const [linkDraft, setLinkDraft] = useState<WorkItem | null>(null);
+  const [linkRevision, setLinkRevision] = useState(snapshot.revision);
   const [target, setTarget] = useState("");
   const [linkError, setLinkError] = useState("");
   const [linkBusy, setLinkBusy] = useState(false);
@@ -43,9 +45,9 @@ export default function CardLibrary({
       cardSearchText(c).includes(query.toLowerCase()),
   );
   useEffect(() => {
-    const guard = (e: Event) => protectNavigation(e, !!draft);
+    const guard = (e: Event) => protectNavigation(e, !!draft || !!linkDraft);
     const unload = (e: BeforeUnloadEvent) => {
-      if (draft) {
+      if (draft || linkDraft) {
         e.preventDefault();
         e.returnValue = "";
       }
@@ -56,7 +58,7 @@ export default function CardLibrary({
       window.removeEventListener("studio-navigate", guard);
       window.removeEventListener("beforeunload", unload);
     };
-  }, [draft]);
+  }, [draft, linkDraft]);
   function edit(c: MethodCard) {
     setDraft(structuredClone(c));
     setRevision(snapshot.revision);
@@ -420,7 +422,7 @@ export default function CardLibrary({
               <select
                 aria-label="Card selection target"
                 value={target}
-                disabled={linkBusy}
+                disabled={linkBusy || !!linkDraft}
                 onChange={(e) => {
                   setTarget(e.target.value);
                   setLinkError("");
@@ -433,7 +435,7 @@ export default function CardLibrary({
                   <optgroup key={w.id} label={w.title}>
                     {(w.workDesign?.tasks || []).map((t) => (
                       <option key={t.id} value={JSON.stringify([w.id, t.id])}>
-                        Task · {t.title || "Untitled task"}
+                        Proposed task · {t.title || "Untitled task"}
                       </option>
                     ))}
                     <option value={JSON.stringify([w.id, ""])}>
@@ -449,14 +451,63 @@ export default function CardLibrary({
                 linking cards.
               </p>
             )}
-            {linkBusy && <span role="status">Saving card links…</span>}
+            <span role="status">
+              {linkBusy
+                ? "Saving card links…"
+                : linkDraft
+                  ? "Unsaved card links"
+                  : "Card links saved"}
+            </span>
+            {linkDraft && (
+              <>
+                <button
+                  type="button"
+                  disabled={linkBusy}
+                  onClick={async () => {
+                    setLinkBusy(true);
+                    setLinkError("");
+                    try {
+                      onSnapshot(
+                        await saveWorkItem(
+                          linkDraft,
+                          linkRevision,
+                          false,
+                          crypto.randomUUID(),
+                        ),
+                      );
+                      setLinkDraft(null);
+                    } catch (e) {
+                      setLinkError(
+                        (e as Error).message +
+                          " Draft retained. Discard and refresh to resolve a conflict.",
+                      );
+                    } finally {
+                      setLinkBusy(false);
+                    }
+                  }}
+                >
+                  Save card links
+                </button>
+                <button
+                  type="button"
+                  disabled={linkBusy}
+                  onClick={() => {
+                    setLinkDraft(null);
+                    setLinkError("");
+                  }}
+                >
+                  Discard card-link changes
+                </button>
+              </>
+            )}
+
             {linkError && <p role="alert">{linkError}</p>}
           </div>
           {(() => {
             const [itemId, taskId] = target
               ? (JSON.parse(target) as string[])
               : [];
-            const item = items.find((w) => w.id === itemId);
+            const item = linkDraft || items.find((w) => w.id === itemId);
             const task = item?.workDesign?.tasks?.find((t) => t.id === taskId);
             return (
               <fieldset className="deck-selection-fieldset" disabled={linkBusy}>
@@ -466,33 +517,17 @@ export default function CardLibrary({
                   onEdit={!readOnly && !draft ? edit : undefined}
                   onChange={
                     item && (!taskId || task) && !readOnly
-                      ? async (ids) => {
-                          setLinkBusy(true);
+                      ? (ids) => {
+                          if (!linkDraft) setLinkRevision(snapshot.revision);
+                          const record = structuredClone(item);
+                          if (taskId && record.workDesign?.tasks)
+                            record.workDesign.tasks =
+                              record.workDesign.tasks.map((t) =>
+                                t.id === taskId ? { ...t, cardIds: ids } : t,
+                              );
+                          else record.cardIds = ids;
+                          setLinkDraft(record);
                           setLinkError("");
-                          try {
-                            const record = structuredClone(item);
-                            if (taskId && record.workDesign?.tasks)
-                              record.workDesign.tasks =
-                                record.workDesign.tasks.map((t) =>
-                                  t.id === taskId ? { ...t, cardIds: ids } : t,
-                                );
-                            else record.cardIds = ids;
-                            onSnapshot(
-                              await saveWorkItem(
-                                record,
-                                snapshot.revision,
-                                false,
-                                crypto.randomUUID(),
-                              ),
-                            );
-                          } catch (e) {
-                            setLinkError(
-                              (e as Error).message +
-                                " Links were not saved. Refresh before retrying a version conflict.",
-                            );
-                          } finally {
-                            setLinkBusy(false);
-                          }
                         }
                       : undefined
                   }

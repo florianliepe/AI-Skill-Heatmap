@@ -19,6 +19,8 @@ export type SprintSession = {
 };
 export type WorkDesign = {
   tasks?: DesignTask[];
+  currentTasks?: DesignTask[];
+  variants?: { id: string; name: string; tasks: DesignTask[] }[];
   currentWork: string;
   input: string;
   aiTask: string;
@@ -35,6 +37,13 @@ export const taskModes = [
   "Bounded agent",
 ] as const;
 export type DesignTask = {
+  lane?: string;
+  redesign?: string;
+  rationale?: string;
+  processing?: number | null;
+  waiting?: number | null;
+  rework?: number | null;
+  handoverQuality?: number | null;
   cardIds?: string[];
   id: string;
   title: string;
