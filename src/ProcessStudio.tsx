@@ -67,11 +67,11 @@ export function ProcessMap({
                 const here = (t.lane || t.owner || "Unassigned") === lane;
                 const metric = overlay === "none" ? null : t[overlay];
                 const intensity =
-                  metric == null || !max
+                  metric == null
                     ? 0
                     : overlay === "handoverQuality"
                       ? 1 - metric / 100
-                      : metric / max;
+                      : max ? metric / max : 0;
                 return (
                   <div key={t.id} className="process-cell">
                     {here ? (

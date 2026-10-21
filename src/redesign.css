@@ -126,6 +126,12 @@
   background: color-mix(in srgb, #ff642d var(--heat, 8%), white);
   color: #292623;
 }
+.process-node:hover,
+.process-node:focus-visible {
+  background: color-mix(in srgb, #ff642d var(--heat, 8%), white);
+  outline: 2px solid #282522;
+  outline-offset: 1px;
+}
 .process-node strong {
   font-size: 13px;
   line-height: 1.4;
