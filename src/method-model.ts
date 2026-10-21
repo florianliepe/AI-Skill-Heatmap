@@ -1,5 +1,6 @@
 export type MethodCard = {
-  kind?: "method" | "ai-card";
+  kind?: "method" | "ai-card" | "data-card" | "resource-card" | "risk-card";
+  color?: string;
   backText?: string;
   backSourceUrl?: string;
   explanation?: string;
@@ -18,6 +19,10 @@ export type MethodCard = {
   version: string;
 };
 export function cardCoverage(card: MethodCard) {
+  if (card.kind && !["ai-card", "method"].includes(card.kind))
+    return card.reviewStatus === "reviewed"
+      ? "Reviewed front only"
+      : "Front available · review pending";
   if (card.kind !== "ai-card") return "Method extract";
   if (!card.body.trim()) return "Missing front";
   if (!card.backText?.trim()) return "Missing reverse";

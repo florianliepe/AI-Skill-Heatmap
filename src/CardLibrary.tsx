@@ -104,7 +104,9 @@ export default function CardLibrary({
           <span>Both sides available - review separately</span>
         </div>
         <div>
-          <strong>{cards.length - aiCards.length}</strong>
+          <strong>
+            {cards.filter((c) => c.kind === "method" || !c.kind).length}
+          </strong>
           <span>Separate method extracts</span>
         </div>
       </div>
@@ -176,6 +178,9 @@ export default function CardLibrary({
           >
             <option value="ai-card">AI design cards</option>
             <option value="method">Method extracts</option>
+            <option value="data-card">Data sources</option>
+            <option value="resource-card">Resources & roles</option>
+            <option value="risk-card">Risk controls</option>
             <option value="">All records</option>
           </select>
         </label>
@@ -212,6 +217,8 @@ export default function CardLibrary({
               "Needs review",
               "Reviewed",
               "Method extract",
+              "Front available · review pending",
+              "Reviewed front only",
             ].map((c) => (
               <option key={c}>{c}</option>
             ))}
@@ -263,6 +270,9 @@ export default function CardLibrary({
                 >
                   <option value="ai-card">AI design card · two sides</option>
                   <option value="method">Method extract</option>
+                  <option value="data-card">Data source card</option>
+                  <option value="resource-card">Resource / role card</option>
+                  <option value="risk-card">Risk card</option>
                 </select>
               </label>
               {(
@@ -579,6 +589,9 @@ export default function CardLibrary({
                       items.filter(
                         (w) =>
                           w.cardIds?.includes(c.id) ||
+                          w.workDesign?.assessment?.some(
+                            (e) => e.cardId === c.id,
+                          ) ||
                           w.workDesign?.tasks?.some((t) =>
                             t.cardIds?.includes(c.id),
                           ),

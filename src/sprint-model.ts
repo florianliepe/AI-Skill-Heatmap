@@ -18,6 +18,7 @@ export type SprintSession = {
   outcome: string;
 };
 export type WorkDesign = {
+  assessment?: import("./assessment-model").AssessmentEntry[];
   tasks?: DesignTask[];
   currentTasks?: DesignTask[];
   variants?: { id: string; name: string; tasks: DesignTask[] }[];

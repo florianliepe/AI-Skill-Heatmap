@@ -6,6 +6,7 @@ import {
   PackageCheck,
 } from "lucide-react";
 import { emptyDesign, type WorkDesign } from "./sprint-model";
+import AssessmentStudio from "./AssessmentStudio";
 import ProcessStudio from "./ProcessStudio";
 import type { MethodCard } from "./method-model";
 export default function WorkDesignCanvas({
@@ -27,6 +28,7 @@ export default function WorkDesignCanvas({
   return (
     <section className="work-design">
       <ProcessStudio value={d} onChange={onChange} cards={cards} />
+      <AssessmentStudio value={d} onChange={onChange} cards={cards} />
       <details className="design-context">
         <summary>Process context and human–AI working approach</summary>
         <span className="eyebrow">HUMAN–AI WORKING APPROACH</span>

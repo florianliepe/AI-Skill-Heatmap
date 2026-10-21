@@ -6,6 +6,7 @@ import {
   processSummary,
   scenarioValue,
 } from "./redesign-model";
+import { assessmentGaps } from "./assessment-model";
 import { ProcessMap } from "./ProcessStudio";
 export default function CaseComparison({
   items,
@@ -36,6 +37,13 @@ export default function CaseComparison({
   const chosen = cases.filter((w) => selection.includes(w.id));
   const detail = cases.find((w) => w.id === focus);
   const rows: { label: string; get: (w: WorkItem) => string }[] = [
+    {
+      label: "Assessment requirements",
+      get: (w) =>
+        w.workDesign?.assessment?.length
+          ? `${w.workDesign.assessment.length} selected · ${assessmentGaps(w.workDesign.assessment).length} evidence/action gaps`
+          : "Not assessed",
+    },
     { label: "Business outcome", get: (w) => w.valueIntent },
     { label: "Impact / 5", get: (w) => displayNumber(w.impact) },
     {

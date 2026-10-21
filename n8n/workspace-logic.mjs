@@ -14,6 +14,7 @@ export function applyMutation(snapshot, request) {
     collection: request.collection,
     record: request.record,
     id: request.id,
+    ...(request.action === "importCards" ? { records: request.records } : {}),
   });
   if (request.requestId) {
     if (
@@ -31,6 +32,49 @@ export function applyMutation(snapshot, request) {
   }
   if (request.action === "read")
     return { write: false, response: { data, revision } };
+  // A bounded card import validates every record before the single revision-checked commit.
+  if (request.action === "importCards") {
+    if (request.revision !== revision)
+      return fail("Refresh before importing cards.");
+    if (
+      !Array.isArray(request.records) ||
+      !request.records.length ||
+      request.records.length > 150
+    )
+      return fail("Import between 1 and 150 cards at a time.");
+    const ids = new Set();
+    let current = { data, revision },
+      result;
+    for (const record of request.records) {
+      if (!record || ids.has(record.id))
+        return fail("Import card identifiers must be unique.");
+      ids.add(record.id);
+      result = applyMutation(current, {
+        action: current.data.methodCards.some((c) => c.id === record.id)
+          ? "update"
+          : "create",
+        collection: "methodCards",
+        record,
+        revision: current.revision,
+      });
+      if (!result.write) return result;
+      current = result.response;
+    }
+    // Normal mutations remain the only way to delete; batch imports cannot delete records.
+    if (request.requestId)
+      current.data._requests = [
+        { id: request.requestId, fingerprint },
+        ...(current.data._requests || []),
+      ].slice(0, 30);
+    const payload = JSON.stringify(current.data);
+    if (payload.length > 1500000) return fail("Workspace size limit reached.");
+    return {
+      ...result,
+      previousRevision: revision,
+      payload,
+      response: current,
+    };
+  }
   if (!["create", "update", "delete"].includes(request.action))
     return fail("Unsupported action.");
   if (!Number.isInteger(request.revision) || request.revision !== revision)
@@ -259,6 +303,79 @@ export function applyMutation(snapshot, request) {
       }
       try {
         record.workDesign.tasks = cleanTasks(design.tasks ?? []);
+        if (design.assessment !== undefined) {
+          if (
+            !Array.isArray(design.assessment) ||
+            design.assessment.length > 150
+          )
+            throw new Error("Use up to 150 assessment requirements.");
+          const ids = new Set(),
+            links = new Set();
+          record.workDesign.assessment = design.assessment.map((e) => {
+            if (
+              !e ||
+              typeof e.id !== "string" ||
+              !/^[\w-]{1,90}$/.test(e.id) ||
+              ids.has(e.id)
+            )
+              throw new Error("Assessment identifiers must be unique.");
+            ids.add(e.id);
+            if (
+              !["data-card", "resource-card", "risk-card"].includes(e.kind) ||
+              !data.methodCards.some(
+                (c) => c.id === e.cardId && c.kind === e.kind,
+              )
+            )
+              throw new Error(
+                "Select an existing card from the matching assessment deck.",
+              );
+            if (
+              e.taskId !== "" &&
+              !record.workDesign.tasks.some((t) => t.id === e.taskId)
+            )
+              throw new Error(
+                "Move assessment requirements before removing their task.",
+              );
+            const link = e.taskId + ":" + e.cardId;
+            if (links.has(link))
+              throw new Error("This card is already assessed for this target.");
+            links.add(link);
+            if (
+              !(
+                e.kind === "risk-card"
+                  ? ["Unknown", "Needed", "Gap", "Controlled"]
+                  : ["Unknown", "Needed", "Gap", "Available"]
+              ).includes(e.status) ||
+              !["Unknown", "Internal", "External"].includes(e.origin) ||
+              !["Unknown", "Structured", "Unstructured"].includes(
+                e.structure,
+              ) ||
+              typeof e.shortlist !== "boolean"
+            )
+              throw new Error("Invalid assessment classification.");
+            const out = {
+              id: e.id,
+              kind: e.kind,
+              cardId: e.cardId,
+              taskId: e.taskId,
+              status: e.status,
+              origin: e.origin,
+              structure: e.structure,
+              shortlist: e.shortlist,
+            };
+            for (const key of [
+              "specification",
+              "owner",
+              "evidence",
+              "action",
+            ]) {
+              if (typeof e[key] !== "string" || e[key].length > 4000)
+                throw new Error("Invalid assessment " + key);
+              out[key] = e[key];
+            }
+            return out;
+          });
+        }
         if (design.currentTasks !== undefined)
           record.workDesign.currentTasks = cleanTasks(design.currentTasks);
         if (design.variants !== undefined) {
@@ -668,7 +785,25 @@ export function applyMutation(snapshot, request) {
       return fail("Enter a name or title.");
     if (c === "methodCards") {
       record.kind = request.record.kind ?? "method";
-      if (!["method", "ai-card"].includes(record.kind))
+      if (
+        data.workItems.some((w) =>
+          (w.workDesign?.assessment || []).some(
+            (e) => e.cardId === id && e.kind !== record.kind,
+          ),
+        )
+      )
+        return fail(
+          "Remove assessment links before changing this card's deck.",
+        );
+      if (
+        ![
+          "method",
+          "ai-card",
+          "data-card",
+          "resource-card",
+          "risk-card",
+        ].includes(record.kind)
+      )
         return fail("Choose a valid card kind.");
       for (const key of [
         "backText",
@@ -684,6 +819,11 @@ export function applyMutation(snapshot, request) {
         if (typeof value !== "string" || value.length > 12000)
           return fail("Invalid card field: " + key);
         record[key] = value;
+      }
+      if (request.record.color !== undefined) {
+        if (!/^#[a-f0-9]{6}$/i.test(request.record.color))
+          return fail("Use a six-digit card colour.");
+        record.color = request.record.color;
       }
       record.reviewStatus = request.record.reviewStatus ?? "unreviewed";
       if (!["unreviewed", "reviewed"].includes(record.reviewStatus))
@@ -831,6 +971,7 @@ export function applyMutation(snapshot, request) {
         data.workItems.some(
           (w) =>
             (w.cardIds || []).includes(id) ||
+            (w.workDesign?.assessment || []).some((e) => e.cardId === id) ||
             [
               ...(w.workDesign?.tasks || []),
               ...(w.workDesign?.currentTasks || []),

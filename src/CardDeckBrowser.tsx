@@ -31,6 +31,11 @@ export default function CardDeckBrowser({
   useEffect(() => {
     if (focus) close.current?.focus();
   }, [focus]);
+  const assessmentDeck =
+    cards.length > 0 &&
+    cards.every((c) =>
+      ["data-card", "resource-card", "risk-card"].includes(c.kind || ""),
+    );
   const visible = cards.filter(
     (c) =>
       (!onlySelected || selected.includes(c.id)) &&
@@ -39,28 +44,32 @@ export default function CardDeckBrowser({
   );
   return (
     <div className="deck-browser">
-      <div className="deck-tabs" aria-label="Card decks">
-        <button
-          type="button"
-          aria-pressed={deck === "mapping"}
-          onClick={() => setDeck("mapping")}
-        >
-          <b>A</b> Opportunity Mapping
-          <small>Explore capabilities and find opportunities</small>
-        </button>
-        <button
-          type="button"
-          aria-pressed={deck === "concept"}
-          onClick={() => setDeck("concept")}
-        >
-          <b>B</b> Concept Development
-          <small>Select capabilities for a specific task</small>
-        </button>
-      </div>
+      {!assessmentDeck && (
+        <div className="deck-tabs" aria-label="Card decks">
+          <button
+            type="button"
+            aria-pressed={deck === "mapping"}
+            onClick={() => setDeck("mapping")}
+          >
+            <b>A</b> Opportunity Mapping
+            <small>Explore capabilities and find opportunities</small>
+          </button>
+          <button
+            type="button"
+            aria-pressed={deck === "concept"}
+            onClick={() => setDeck("concept")}
+          >
+            <b>B</b> Concept Development
+            <small>Select capabilities for a specific task</small>
+          </button>
+        </div>
+      )}
       <p className="deck-instruction">
-        {deck === "mapping"
-          ? "Start with a problem. Browse the capability families, then choose cards worth exploring."
-          : "Prefer a process task: identify its inputs, desired output, human review and acceptance test. A selected card is a design candidate, not proven feasibility."}
+        {assessmentDeck
+          ? "Choose relevant inputs, resources or controls. Record ownership and evidence in the concept assessment; selection alone does not prove readiness."
+          : deck === "mapping"
+            ? "Start with a problem. Browse the capability families, then choose cards worth exploring."
+            : "Prefer a process task: identify its inputs, desired output, human review and acceptance test. A selected card is a design candidate, not proven feasibility."}
       </p>
       <div className="deck-clusters" aria-label="Capability clusters">
         <button
@@ -229,7 +238,10 @@ export default function CardDeckBrowser({
           <h4>Side 1 · original wording</h4>
           <p className="deck-source">{focus.body || "Not available"}</p>
           <h4>Side 2 · original wording</h4>
-          <p className="deck-source">{focus.backText || "Not available"}</p>
+          <p className="deck-source">
+            {focus.backText ||
+              "Reverse not supplied in this source. No content inferred."}
+          </p>
           <small>{focus.version}</small>
           <p>
             {safeSource(focus.sourceUrl) && (

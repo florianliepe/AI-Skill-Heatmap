@@ -6,6 +6,9 @@ export const cardClusters = [
   "AI creates and controls",
   "Supporting technologies & open ideas",
   "Other methods",
+  "Data sources",
+  "Resources & roles",
+  "Risk controls",
 ];
 const names = [
   "Finds and organizes information",
@@ -41,6 +44,16 @@ const colors = [
   "#858687",
 ];
 export function cardCategory(card: MethodCard) {
+  const additional = ["data-card", "resource-card", "risk-card"].indexOf(
+    card.kind || "",
+  );
+  if (additional >= 0)
+    return {
+      code: ["D", "R", "E"][additional],
+      name: card.category,
+      color: /^#[a-f0-9]{6}$/i.test(card.color || "") ? card.color! : "#627c82",
+      cluster: additional + 5,
+    };
   const guide =
     card.kind === "ai-card" && card.category === "Category guides"
       ? /^([A-M])\s*[·.]/.exec(card.title)?.[1]
